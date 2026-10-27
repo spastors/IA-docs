@@ -13,6 +13,8 @@ Notas breves y organizadas para repasar los conceptos de inteligencia artificial
 - [7. Determinismo y aleatoriedad](#7-determinismo-y-aleatoriedad)
 - [8. Redes neuronales](#8-redes-neuronales)
 - [9. Ejemplo en C#: puntos de un juego](#9-ejemplo-en-c-puntos-de-un-juego)
+- [10. Redes neuronales recurrentes (RNN)](#10-redes-neuronales-recurrentes-rnn)
+- [11. Transformer: historia y funcionamiento](#11-transformer-historia-y-funcionamiento)
 
 ## 1. Orígenes y fechas clave
 
@@ -472,3 +474,227 @@ El gradiente se calcula a partir de la pérdida **L = suma((predicción − obje
 **Código ejecutable:** [NeuronaPuntosJuego.cs](ejemplos/NeuronaPuntosJuego.cs). Puede copiarse en el archivo Program.cs de un proyecto de consola C#; utiliza únicamente la biblioteca estándar.
 
 Fuente conceptual: [Google: descenso de gradiente](https://developers.google.com/machine-learning/crash-course/linear-regression/gradient-descent).
+
+## 10. Redes neuronales recurrentes (RNN)
+
+![RNN desplegada en el tiempo: cada palabra actualiza un estado numérico que se transmite al paso siguiente](assets/rnn-estado-y-memoria.png)
+
+El esquema omite pasos intermedios y utiliza valores de estado ilustrativos.
+
+### Hitos históricos
+
+| Año | Aportación |
+| --- | --- |
+| **1990** | Jeffrey L. Elman publica *Finding Structure in Time*, un trabajo de referencia sobre redes recurrentes con estado interno. [Publicación del autor](https://jeffelman.ucsd.edu/research/publications/). |
+| **1997** | Sepp Hochreiter y Jürgen Schmidhuber presentan **LSTM**, diseñada para facilitar el aprendizaje de dependencias lejanas. [Artículo](https://doi.org/10.1162/neco.1997.9.8.1735). |
+| **2014** | Kyunghyun Cho y colaboradores presentan una unidad recurrente con compuertas, conocida como **GRU**, en un modelo codificador-decodificador. [Artículo](https://arxiv.org/abs/1406.1078). |
+
+### Datos secuenciales
+
+Una **red neuronal recurrente**, o **RNN** (*Recurrent Neural Network*), procesa datos en los que **el orden importa**: texto, audio o mediciones de un sensor a lo largo del tiempo.
+
+En cada paso combina la entrada actual con un **estado oculto o interno** procedente del paso anterior. Este estado es un vector numérico que resume información de la secuencia.
+
+### Funcionamiento paso a paso
+
+1. **Recibe la entrada actual:** por ejemplo, la representación numérica de una palabra o token.
+2. **La combina con el estado anterior:** incorpora información de los pasos previos.
+3. **Calcula un nuevo estado:** actualiza el resumen de la secuencia.
+4. **Avanza a la siguiente entrada:** transmite el nuevo estado al siguiente paso.
+
+**hₜ = f(xₜ, hₜ₋₁)**
+
+- **xₜ:** entrada actual.
+- **hₜ₋₁:** estado anterior.
+- **hₜ:** nuevo estado.
+
+El estado inicial **h₀** suele establecerse en ceros. La red reutiliza los mismos pesos en todos los pasos; durante la lectura cambia el estado.
+
+En un modelo de lenguaje, el estado también permite calcular probabilidades para el siguiente token.
+
+Fuente: [Dive into Deep Learning: redes neuronales recurrentes](https://d2l.ai/chapter_recurrent-neural-networks/rnn.html).
+
+### Ejemplo: una relación entre palabras alejadas
+
+> La lámpara que elegimos en la tienda del centro después de comparar varios modelos y revisar los precios sigue encendida.
+
+Cada palabra se considera un paso en este ejemplo. La relación principal que interesa conservar es **«lámpara → encendida»**, aunque aparezcan otras palabras entre ambas.
+
+| Entrada o tramo | Información relevante para interpretar la frase |
+| --- | --- |
+| «La» | Comienza un grupo nominal femenino singular. |
+| «lámpara» | Aparece el objeto principal al que se referirá el final. |
+| «que elegimos en la tienda del centro» | Se añade información sobre la elección de la lámpara. |
+| «después de comparar varios modelos y revisar los precios» | Se incorporan detalles y sustantivos en plural; la referencia principal sigue siendo «lámpara». |
+| «sigue» | Se introduce el estado actual del objeto. |
+| «encendida» | El adjetivo se relaciona con «lámpara», en femenino singular. |
+
+La capacidad de conservar estas relaciones en el estado interno depende del entrenamiento.
+
+### Memoria de corto plazo y «amnesia»
+
+La RNN básica suele conservar mejor la información **reciente**. El estado tiene un tamaño fijo y se actualiza con cada entrada; la información antigua puede debilitarse o quedar sobrescrita.
+
+Esta dificultad para mantener **dependencias a largo plazo** se describe de forma intuitiva como «amnesia». En el ejemplo, la red podría perder la relación con «lámpara» después de procesar los detalles intermedios.
+
+Durante el entrenamiento aparece además el **desvanecimiento del gradiente**: la señal que permite ajustar los pesos puede hacerse muy pequeña al propagarse a través de muchos pasos. Así resulta difícil aprender qué información lejana debe conservarse. También pueden aparecer **gradientes explosivos**, con valores excesivamente grandes.
+
+La dificultad depende de la distancia entre los elementos relevantes, la tarea y el entrenamiento; no existe un número universal de palabras a partir del cual la red olvide.
+
+| Modelo | Información anterior utilizada para predecir |
+| --- | --- |
+| **N-grama** | Los últimos n − 1 tokens, mediante una ventana fija. |
+| **RNN básica** | Un estado que puede transportar información de pasos más lejanos, con dificultades para conservarla en secuencias largas. |
+
+Fuente: [Dive into Deep Learning: propagación hacia atrás en el tiempo y problemas del gradiente](https://d2l.ai/chapter_recurrent-neural-networks/bptt.html).
+
+### LSTM y GRU
+
+**LSTM** (*Long Short-Term Memory*) y **GRU** (*Gated Recurrent Unit*) son variantes de las RNN que utilizan **compuertas** para regular qué información se conserva, se actualiza o se descarta.
+
+Facilitan mantener información durante más pasos, aunque su memoria también tiene limitaciones.
+
+Fuentes: [LSTM](https://d2l.ai/chapter_recurrent-modern/lstm.html) y [GRU](https://d2l.ai/chapter_recurrent-modern/gru.html).
+
+## 11. Transformer: historia y funcionamiento
+
+### Qué es
+
+Un **Transformer** es una arquitectura de red neuronal que utiliza **atención** para combinar información de distintas posiciones de una secuencia. La arquitectura original tiene un **codificador** que representa el texto de entrada y un **decodificador** que produce la salida.
+
+### Historia
+
+| Fecha | Hito |
+| --- | --- |
+| **2014–2015** | Bahdanau, Cho y Bengio proponen atención para traducción con redes recurrentes. El artículo se difunde en 2014 y se presenta en ICLR 2015. Permite consultar partes relevantes de la entrada al producir cada palabra de la traducción. [Artículo](https://arxiv.org/abs/1409.0473). |
+| **2017** | Vaswani y colaboradores presentan **Attention Is All You Need**, publicado inicialmente en junio y presentado en NIPS 2017. Introducen el Transformer con atención y redes por posición, sin recurrencia. [Artículo](https://arxiv.org/abs/1706.03762). |
+| **2018** | **GPT** desarrolla la línea de modelos generativos basados en el decodificador; **BERT** desarrolla representaciones bidireccionales basadas en el codificador. [GPT](https://openai.com/index/language-unsupervised/) y [BERT](https://arxiv.org/abs/1810.04805). |
+| **2020** | **GPT-3** muestra el potencial de ampliar la escala de los modelos generativos basados en Transformer. [Artículo](https://arxiv.org/abs/2005.14165). |
+
+### Arquitectura original: lectura del diagrama
+
+![Transformer original con codificador y decodificador, atención, bloques residuales, normalización y salida de probabilidades](assets/transformer-codificador-decodificador.png)
+
+El recorrido se lee **de abajo arriba**. Los colores identifican las operaciones: **azul**, atención; **violeta**, transformación por posición; **amarillo**, conexión residual y normalización; **rojo**, predicción.
+
+| Bloque | Función |
+| --- | --- |
+| **Input / Output Embedding** | Convierte identificadores de tokens en vectores. |
+| **Positional Encoding** | Incorpora información sobre el orden de las posiciones. |
+| **Multi-Head Attention del codificador** | Relaciona cada posición con las posiciones válidas de la entrada. |
+| **Masked Multi-Head Attention** | Autoatención del decodificador con máscara causal: permite la posición actual y las anteriores. |
+| **Atención cruzada** | El decodificador consulta las representaciones producidas por el codificador. |
+| **Add & Norm** | Suma la entrada de una subcapa a su resultado y aplica normalización de capa. |
+| **Feed Forward** | Transforma el vector de cada posición mediante una red con activación no lineal. |
+| **Linear** | Proyecta la representación a una puntuación por token del vocabulario. |
+| **Softmax** | Convierte esas puntuaciones en probabilidades que suman 1. |
+
+Las flechas que rodean bloques representan **conexiones residuales**. La marca **× N** indica capas apiladas: el modelo base original utiliza **6 capas en cada pila**, con parámetros propios por capa.
+
+Fuente: [Dive into Deep Learning: arquitectura Transformer](https://d2l.ai/chapter_attention-mechanisms-and-transformers/transformer.html).
+
+### Entrada del decodificador
+
+Durante el entrenamiento, recibe el texto objetivo **desplazado una posición**: un marcador de inicio seguido de los tokens anteriores. La máscara causal impide utilizar tokens futuros para predecir el siguiente.
+
+En el ejemplo del diagrama:
+
+- **Entrada del codificador:** «La ventana sigue abierta».
+- **Salida ya disponible:** «The window».
+- **Continuación posible:** «is», seguida más adelante de «open».
+
+Durante la generación, el decodificador reutiliza los tokens que ya ha producido y añade uno nuevo en cada paso.
+
+Fuente: [Vaswani y colaboradores: Transformer original](https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf).
+
+### Ejemplo: de los tokens a la atención
+
+> La ventana que instalamos junto al balcón tras comparar varios modelos sigue abierta.
+
+La relación que interesa identificar es **«ventana → abierta»**, aunque las palabras estén separadas por otros detalles.
+
+**1. Tokenización**
+
+Una división didáctica por palabras y puntuación sería:
+
+```text
+La | ventana | que | instalamos | junto | al | balcón | tras |
+comparar | varios | modelos | sigue | abierta | .
+```
+
+La división real depende del tokenizador; una palabra puede ocupar varios tokens.
+
+Fuente: [Jurafsky y Martin: palabras y tokens](https://web.stanford.edu/~jurafsky/slp3/2.pdf).
+
+**2. Embeddings**
+
+Cada token se asocia a un vector aprendido. Para visualizar el concepto, estos valores son **inventados y reducidos a tres dimensiones**:
+
+| Token | Vector ilustrativo |
+| --- | --- |
+| «ventana» | [0,2; −0,4; 0,7] |
+| «balcón» | [0,3; −0,1; 0,6] |
+| «abierta» | [−0,5; 0,8; 0,1] |
+
+Las dimensiones son características aprendidas cuyo significado suele estar distribuido entre muchas coordenadas. A través de las capas, la representación de un token se transforma según su contexto.
+
+Fuente: [Google: aprendizaje de embeddings](https://developers.google.com/machine-learning/crash-course/embeddings/obtaining-embeddings).
+
+**3. Posición**
+
+Se incorpora información sobre dónde aparece cada token. En el Transformer original se añaden vectores posicionales basados en senos y cosenos a los embeddings.
+
+Fuente: [Dive into Deep Learning: autoatención e información de posición](https://d2l.ai/chapter_attention-mechanisms-and-transformers/self-attention-and-positional-encoding.html).
+
+**4. Autoatención: Q, K y V**
+
+Cada posición produce tres proyecciones aprendidas:
+
+| Proyección | Papel |
+| --- | --- |
+| **Q — Query, consulta** | Se compara con las claves para calcular relevancias. |
+| **K — Key, clave** | Permite calcular la compatibilidad con cada consulta. |
+| **V — Value, valor** | Aporta la información que se combinará según esas relevancias. |
+
+El mecanismo calcula puntuaciones entre **Q y K**, las escala y normaliza con softmax, y utiliza los pesos resultantes para combinar los **V**.
+
+En la autoatención, Q, K y V proceden de la misma secuencia. En la atención cruzada, Q procede del decodificador y K y V del codificador.
+
+Fuente: [Dive into Deep Learning: cálculo de la atención](https://d2l.ai/chapter_attention-mechanisms-and-transformers/attention-scoring-functions.html).
+
+Para la posición de «abierta» en el **codificador**, una distribución ilustrativa de una cabeza podría ser:
+
+| Posición atendida | Peso ilustrativo |
+| --- | --- |
+| «ventana» | 0,65 |
+| «sigue» | 0,20 |
+| «balcón» | 0,05 |
+| Resto de posiciones, agrupadas | 0,10 |
+
+Los pesos suman **1**. Son valores inventados para mostrar una combinación ponderada; los valores reales dependen de la capa, la cabeza, el contexto y el entrenamiento.
+
+**5. Atención multicabeza**
+
+Varias cabezas calculan atención con proyecciones diferentes. Sus resultados se concatenan y se combinan mediante otra proyección. Esto permite aprender relaciones diversas en paralelo; la función de cada cabeza surge del entrenamiento.
+
+Fuente: [Dive into Deep Learning: atención multicabeza](https://d2l.ai/chapter_attention-mechanisms-and-transformers/multihead-attention.html).
+
+### Paralelismo y contexto
+
+- **Entrenamiento:** se pueden calcular varias posiciones en paralelo dentro de cada capa. En el decodificador, la máscara mantiene la restricción causal.
+- **Generación autorregresiva:** cada token nuevo depende de los anteriores y se produce paso a paso.
+- **Relaciones lejanas:** la atención puede conectar directamente posiciones distantes dentro del contexto disponible. La ventana de contexto y la capacidad de usar la información siguen teniendo límites.
+
+Fuente: [Vaswani y colaboradores: atención y procesamiento de secuencias](https://arxiv.org/abs/1706.03762).
+
+### Familias de Transformer
+
+| Variante | Organización | Ejemplo |
+| --- | --- | --- |
+| **Solo codificador** | Produce representaciones con contexto bidireccional. | BERT. |
+| **Solo decodificador** | Genera texto con atención causal. | GPT. |
+| **Codificador-decodificador** | Representa una entrada y genera una salida que la consulta. | Transformer original de traducción. |
+
+La atención cruzada entre ambas pilas pertenece a la arquitectura codificador-decodificador.
+
+Fuentes: [Transformer original](https://arxiv.org/abs/1706.03762), [BERT](https://arxiv.org/abs/1810.04805) y [GPT](https://openai.com/index/language-unsupervised/).
