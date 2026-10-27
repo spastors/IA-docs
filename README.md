@@ -15,6 +15,7 @@ Notas breves y organizadas para repasar los conceptos de inteligencia artificial
 - [9. Ejemplo en C#: puntos de un juego](#9-ejemplo-en-c-puntos-de-un-juego)
 - [10. Redes neuronales recurrentes (RNN)](#10-redes-neuronales-recurrentes-rnn)
 - [11. Transformer: historia y funcionamiento](#11-transformer-historia-y-funcionamiento)
+- [12. Ciclo de entrenamiento de un LLM](#12-ciclo-de-entrenamiento-de-un-llm)
 
 ## 1. Orígenes y fechas clave
 
@@ -698,3 +699,134 @@ Fuente: [Vaswani y colaboradores: atención y procesamiento de secuencias](https
 La atención cruzada entre ambas pilas pertenece a la arquitectura codificador-decodificador.
 
 Fuentes: [Transformer original](https://arxiv.org/abs/1706.03762), [BERT](https://arxiv.org/abs/1810.04805) y [GPT](https://openai.com/index/language-unsupervised/).
+
+## 12. Ciclo de entrenamiento de un LLM
+
+### De Transformer a LLM
+
+El **Transformer** define la arquitectura: capas, atención y operaciones que procesan los datos. El entrenamiento ajusta sus parámetros para obtener un **modelo de lenguaje con capacidades aprendidas**.
+
+**Arquitectura Transformer + tokenizador + datos + entrenamiento → LLM entrenado**.
+
+En los modelos generativos causales, el objetivo habitual del preentrenamiento es **predecir el siguiente token**. Después pueden añadirse etapas para seguir instrucciones y adaptar el comportamiento del modelo.
+
+Fuente: [GPT-3: preentrenamiento y modelado autorregresivo](https://arxiv.org/abs/2005.14165).
+
+### Vista general
+
+```mermaid
+flowchart TD
+    A[Preparar datos] --> B[Tokenizar y configurar el modelo]
+    B --> C[Preentrenamiento]
+    C --> D[Modelo base]
+    D --> E[Posentrenamiento: instrucciones y preferencias]
+    E --> F[Modelo adaptado para uso conversacional]
+    F --> G[Evaluación final y despliegue]
+```
+
+El recorrido concreto varía entre proyectos. La evaluación acompaña a todas las fases; el ajuste por instrucciones y preferencias forma parte de muchos modelos conversacionales.
+
+### 1. Recolección y preparación de datos
+
+Se reúne un **corpus**, es decir, un conjunto de textos: documentos, libros, páginas web, código u otras fuentes seleccionadas para el objetivo del modelo.
+
+La preparación incluye:
+
+- **Filtrar:** seleccionar contenido pertinente y con calidad suficiente.
+- **Limpiar:** retirar texto corrupto, formatos inútiles y otros elementos que dificulten el aprendizaje.
+- **Deduplicar:** reducir copias repetidas que podrían dominar el entrenamiento.
+- **Separar conjuntos:** entrenamiento para ajustar parámetros, validación para orientar decisiones de desarrollo y prueba para la evaluación final. Se controla el solapamiento entre ellos.
+
+**Resultado:** datos preparados para entrenar y conjuntos reservados para evaluar.
+
+Fuente: [FineWeb: selección, filtrado y deduplicación de datos](https://arxiv.org/abs/2406.17557).
+
+### 2. Tokenización y configuración del modelo
+
+El **tokenizador** convierte el texto en identificadores numéricos. Los tokens se organizan en secuencias y lotes de entrenamiento.
+
+Se configura el Transformer: tamaño del vocabulario, dimensiones de los embeddings, número de capas y otros parámetros de diseño. Si se entrena desde cero, se inicializan los pesos; si se continúa un modelo existente, se reutilizan sus parámetros.
+
+**Resultado:** un modelo configurado y lotes de tokens listos para procesar.
+
+Fuente: [Hugging Face: entrenamiento de un modelo causal desde cero](https://huggingface.co/learn/llm-course/chapter7/6).
+
+### 3. Preentrenamiento: el ciclo que se repite
+
+El modelo aprende patrones generales mediante un objetivo **autosupervisado**: el propio texto proporciona los tokens que debe predecir.
+
+| Paso del ciclo | Qué ocurre |
+| --- | --- |
+| **Embeddings y posición** | Los identificadores se convierten en vectores y se incorpora información de posición. |
+| **Predicción** | El Transformer calcula probabilidades para el siguiente token usando el contexto permitido. |
+| **Cálculo de pérdida** | Se compara la distribución predicha con el token objetivo mediante una función como la entropía cruzada. |
+| **Retropropagación** | Se calculan los gradientes: cómo influye cada parámetro entrenable en la pérdida. |
+| **Actualización de parámetros** | Un optimizador utiliza los gradientes para ajustar los pesos, incluidos los embeddings entrenables. |
+| **Nuevo lote** | Se repite el ciclo con más datos y se comprueba periódicamente la evolución del modelo. |
+
+La repetición se organiza en **pasos de entrenamiento y lotes**; una **época** es una pasada por el conjunto de entrenamiento.
+
+Fuentes: [Hugging Face: objetivo causal y ciclo de entrenamiento](https://huggingface.co/learn/llm-course/chapter7/6) y [Dive into Deep Learning: optimización por lotes](https://d2l.ai/chapter_optimization/minibatch-sgd.html).
+
+**Ejemplo:** en «Al amanecer sale el sol», el contexto «Al amanecer sale el» permite entrenar la predicción de «sol». Se usa la palabra completa para simplificar; el objetivo real se define por tokens.
+
+Si el modelo asigna poca probabilidad al token objetivo, la pérdida es mayor. Los ajustes buscan mejorar sus predicciones sobre muchos ejemplos.
+
+**Resultado:** un **modelo base** capaz de modelar y continuar texto.
+
+### 4. Ajuste fino supervisado: SFT
+
+El **ajuste fino supervisado**, o **SFT** (*Supervised Fine-Tuning*), continúa el entrenamiento con ejemplos de instrucciones y respuestas deseadas.
+
+Puede orientar el modelo hacia tareas, estilos de respuesta o formatos de conversación.
+
+**Ejemplo de entrenamiento:**
+
+> **Instrucción:** Resume: «El barco salió del puerto y llegó a la isla».
+>
+> **Respuesta deseada:** El barco llegó a la isla.
+
+**Resultado:** un modelo adaptado para responder a instrucciones.
+
+Fuente: [Hugging Face: ajuste fino supervisado](https://huggingface.co/learn/llm-course/chapter11/3).
+
+### 5. Ajuste según preferencias
+
+Se comparan posibles respuestas para favorecer comportamientos deseados: utilidad, claridad, fidelidad a la información y seguimiento de instrucciones.
+
+Las personas pueden redactar demostraciones, puntuar respuestas o elegir entre alternativas. Esas evaluaciones se convierten en datos de entrenamiento.
+
+| Método | Cómo utiliza las preferencias |
+| --- | --- |
+| **RLHF** (*Reinforcement Learning from Human Feedback*) | En un enfoque habitual, se entrena un modelo de recompensa a partir de comparaciones y se ajusta el modelo de lenguaje mediante aprendizaje por refuerzo. |
+| **DPO** (*Direct Preference Optimization*) | Ajusta directamente el modelo con pares de respuestas preferidas y descartadas, sin entrenar un modelo de recompensa separado. |
+
+Por ejemplo, para el resumen del barco se puede preferir una respuesta fiel frente a otra que añada un día de llegada que el texto no menciona.
+
+**Resultado:** un modelo cuyo comportamiento se aproxima mejor a los criterios elegidos. Estas técnicas pueden utilizarse como alternativas dentro del posentrenamiento.
+
+Fuentes: [InstructGPT: aprendizaje con evaluaciones humanas](https://arxiv.org/abs/2203.02155) y [DPO: optimización directa de preferencias](https://arxiv.org/abs/2305.18290).
+
+### 6. Evaluación y revisión
+
+Se combinan pruebas automáticas, tareas prácticas y evaluaciones humanas para medir:
+
+- **Capacidades:** comprensión, generación, razonamiento y seguimiento de instrucciones.
+- **Fiabilidad:** errores, información inventada y comportamiento ante preguntas ambiguas.
+- **Seguridad y sesgos:** respuestas problemáticas y diferencias de comportamiento entre casos.
+- **Rendimiento:** velocidad y recursos necesarios para utilizar el modelo.
+
+Los resultados pueden motivar cambios en los datos o nuevos ajustes. Las pruebas de validación también se realizan durante el entrenamiento para detectar problemas y comparar versiones.
+
+Fuentes: [GPT-4: evaluación de capacidades y limitaciones](https://arxiv.org/abs/2303.08774) y [Hugging Face: validación durante el entrenamiento](https://huggingface.co/learn/llm-course/chapter7/6).
+
+### Entrenamiento e inferencia
+
+| Etapa | Qué ocurre con los parámetros |
+| --- | --- |
+| **Entrenamiento** | Se ajustan mediante un proceso de optimización. |
+| **Inferencia o uso** | Habitualmente permanecen fijos mientras el modelo genera una respuesta con el contexto disponible. |
+
+Una conversación aporta contexto a la inferencia. Incorporar después esas interacciones a un entrenamiento requiere un proceso adicional.
+
+Fuente: [GPT-3: uso de instrucciones y ejemplos sin actualizar parámetros](https://arxiv.org/abs/2005.14165).
