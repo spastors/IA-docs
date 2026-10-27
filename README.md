@@ -9,13 +9,14 @@ Notas breves y organizadas para repasar los conceptos de inteligencia artificial
 - [3. PLN: procesamiento del lenguaje natural](#3-pln-procesamiento-del-lenguaje-natural)
 - [4. Modelo de n-gramas](#4-modelo-de-n-gramas)
 - [5. Contexto](#5-contexto)
-- [6. Tokens](#6-tokens)
+- [6. Tokens y tokenización](#6-tokens-y-tokenización)
 - [7. Determinismo y aleatoriedad](#7-determinismo-y-aleatoriedad)
 - [8. Redes neuronales](#8-redes-neuronales)
 - [9. Ejemplo en C#: puntos de un juego](#9-ejemplo-en-c-puntos-de-un-juego)
 - [10. Redes neuronales recurrentes (RNN)](#10-redes-neuronales-recurrentes-rnn)
 - [11. Transformer: historia y funcionamiento](#11-transformer-historia-y-funcionamiento)
 - [12. Ciclo de entrenamiento de un LLM](#12-ciclo-de-entrenamiento-de-un-llm)
+- [13. Embeddings: representación y contexto](#13-embeddings-representación-y-contexto)
 
 ## 1. Orígenes y fechas clave
 
@@ -237,25 +238,115 @@ El contexto es información disponible durante el uso del modelo; el entrenamien
 
 Fuentes: [Stanford HAI: ventana de contexto](https://hai.stanford.edu/ai-definitions/what-is-a-context-window) y [Stanford: cómo funcionan los modelos de lenguaje](https://guides.library.stanford.edu/ai_research/understanding_ai).
 
-## 6. Tokens
+## 6. Tokens y tokenización
 
-Un **token** es una unidad de texto que procesa el modelo. Puede corresponder a una palabra, parte de una palabra, un signo de puntuación u otra secuencia de caracteres.
+### Qué es
 
-La **tokenización** es el proceso de dividir el texto en estas unidades. Cada token se representa mediante un identificador numérico.
+La **tokenización** transforma el texto en una secuencia de unidades llamadas **tokens**, representadas mediante **identificadores numéricos**. El componente que aplica estas reglas es el **tokenizador**.
 
-### Ejemplo de tokenización
+Un token puede representar una palabra, parte de una palabra, puntuación, espacios u otras secuencias. La división depende del vocabulario y las reglas del tokenizador.
 
-Con un tokenizador sencillo que separa palabras y puntuación:
+```text
+Texto → fragmentos o tokens → identificadores → embeddings → modelo
+```
 
-> «La luna brilla.» → [«La», «luna», «brilla», «.»] → **4 tokens**.
-
-En un tokenizador de subpalabras, una palabra como «reorganización» podría dividirse en fragmentos. La división exacta depende del tokenizador; los tokens no tienen por qué coincidir con sílabas.
-
-**Un token no equivale siempre a una palabra.** El número de tokens depende del texto, el idioma y el tokenizador utilizado.
-
-Los modelos generativos de texto producen la respuesta token a token. El texto de entrada y el texto generado se contabilizan en tokens.
+El **identificador** selecciona una entrada del vocabulario; el **embedding** es el vector numérico asociado que utiliza la red neuronal.
 
 Fuente: [Jurafsky y Martin: palabras y tokens](https://web.stanford.edu/~jurafsky/slp3/2.pdf).
+
+### Objetivos
+
+- **Mantener un vocabulario manejable:** reutilizar fragmentos para representar muchas palabras.
+- **Representar texto nuevo:** descomponer palabras poco frecuentes o variantes ortográficas.
+- **Equilibrar eficiencia:** combinar un vocabulario de tamaño razonable con secuencias que no sean excesivamente largas.
+
+Los métodos por subpalabras ofrecen un compromiso entre usar palabras completas y dividir todo en caracteres. La tokenización representa el texto recibido; la corrección ortográfica es una tarea independiente.
+
+Fuente: [Hugging Face: métodos de tokenización](https://huggingface.co/docs/transformers/tokenizer_summary).
+
+### Proceso de tokenización
+
+| Paso | Qué ocurre |
+| --- | --- |
+| **1. Normalización, si está configurada** | Aplica reglas al texto, como normalización Unicode o conversión a minúsculas. Las reglas dependen del tokenizador. |
+| **2. Pretokenización** | Delimita segmentos iniciales, por ejemplo mediante espacios o puntuación. |
+| **3. Segmentación** | Aplica el método elegido, como BPE, WordPiece o Unigram. |
+| **4. Codificación** | Asigna a cada token su identificador dentro del vocabulario. |
+| **5. Posprocesamiento** | Añade, cuando corresponde, tokens especiales de inicio, fin, separación o control. |
+
+La **decodificación** convierte los identificadores de salida en texto. La reconstrucción depende de las reglas del tokenizador y de las transformaciones aplicadas al texto.
+
+Fuente: [Hugging Face: proceso de tokenización](https://huggingface.co/docs/tokenizers/pipeline).
+
+### Principales métodos
+
+| Método | Cómo trabaja | Característica |
+| --- | --- | --- |
+| **Por palabras** | Separa palabras completas, normalmente con reglas adicionales para la puntuación. | Puede requerir un vocabulario muy grande y encontrar palabras desconocidas. |
+| **Por caracteres** | Trata cada carácter como una unidad. | Vocabulario pequeño, pero secuencias más largas. |
+| **Por bytes** | Representa el texto a partir de sus bytes, habitualmente con codificación UTF-8. | Puede cubrir cualquier texto codificable; un carácter puede ocupar varios bytes. |
+| **BPE — Byte Pair Encoding** | Aprende fusiones de pares frecuentes de unidades consecutivas. | Produce fragmentos frecuentes; existen variantes que parten de caracteres o de bytes. |
+| **WordPiece** | Segmenta usando subpalabras del vocabulario, seleccionando el fragmento conocido más largo desde cada punto. | Se utiliza en BERT; el marcador «##» suele indicar continuación de palabra. |
+| **Unigram** | Aprende probabilidades de fragmentos y elige una segmentación según ese modelo. | Permite evaluar distintas formas de dividir una misma palabra. |
+
+Fuentes: [comparación de métodos](https://huggingface.co/docs/transformers/tokenizer_summary), [BPE](https://huggingface.co/learn/llm-course/chapter6/5), [WordPiece](https://huggingface.co/learn/llm-course/chapter6/6) y [Unigram](https://huggingface.co/learn/llm-course/chapter6/7).
+
+**SentencePiece** es una herramienta que permite entrenar y aplicar tokenizadores, incluidos BPE y Unigram, directamente sobre texto. Puede representar los espacios explícitamente y trabajar con idiomas que no separan las palabras mediante espacios.
+
+Fuente: [SentencePiece: documentación del proyecto](https://github.com/google/sentencepiece).
+
+### Ejemplo de aprendizaje con BPE
+
+Corpus simplificado: **«pato», «pato», «patos»**. Se trabaja dentro de cada palabra, sin representar espacios ni marcadores de final.
+
+1. **Inicio:** se separan los caracteres: «p | a | t | o» y «p | a | t | o | s».
+2. **Primera fusión:** «p» + «a» → «pa».
+3. **Segunda fusión:** «pa» + «t» → «pat».
+4. **Tercera fusión:** «pat» + «o» → «pato».
+
+Con estas fusiones, «pato» queda como un token y «patos» como **«pato | s»**. En este corpus hay pares empatados en frecuencia; se ha elegido una secuencia posible de desempates.
+
+Las fusiones se aprenden al entrenar el tokenizador. Al procesar un texto nuevo, se aplican las reglas ya aprendidas.
+
+Fuente: [Hugging Face: aprendizaje y aplicación de BPE](https://huggingface.co/learn/llm-course/chapter6/5).
+
+### Ejemplo: de fragmentos a identificadores
+
+Con un **vocabulario inventado** para ilustrar la conversión:
+
+| Token | Identificador |
+| --- | --- |
+| «Buenas» | 48 |
+| « tardes» — incluye un espacio inicial | 207 |
+| «!» | 9 |
+
+```text
+«Buenas tardes!» → [«Buenas», « tardes», «!»] → [48, 207, 9]
+```
+
+Cada tipo de token tiene un identificador dentro de ese vocabulario. Las apariciones del mismo token comparten identificador. Otro tokenizador puede dividir la frase de otra manera y asignar otros números.
+
+El número es una referencia al vocabulario; su magnitud no indica importancia ni significado.
+
+### Espacios, símbolos y tokens especiales
+
+Los espacios, tabulaciones y saltos de línea también pueden quedar representados, de forma independiente o unidos a otros fragmentos. Los acentos, emojis y símbolos pueden necesitar varios tokens.
+
+Los **tokens especiales** marcan elementos como el final del texto, separadores o roles en una conversación. Su uso concreto forma parte de la configuración del modelo.
+
+Fuentes: [proceso y posprocesamiento](https://huggingface.co/docs/tokenizers/pipeline) y [SentencePiece: representación de espacios](https://github.com/google/sentencepiece).
+
+### Cuándo se utiliza
+
+- **Al preparar el entrenamiento:** se codifican los datos con el tokenizador elegido.
+- **Al usar el modelo:** se codifican el mensaje, el historial y otros textos aportados como contexto.
+- **Al generar:** el modelo produce identificadores de tokens, que se decodifican para mostrar texto.
+
+Entrenar el tokenizador aprende su vocabulario y sus reglas. Entrenar el LLM ajusta los parámetros de la red neuronal. El modelo se utiliza con un tokenizador compatible con su entrenamiento.
+
+**Un token no equivale siempre a una palabra.** El número de tokens depende del texto, el idioma y el tokenizador; influye en el uso de la ventana de contexto y en el coste de procesar la secuencia.
+
+Fuente: [Hugging Face: métodos y uso de tokenizadores](https://huggingface.co/docs/transformers/tokenizer_summary).
 
 ## 7. Determinismo y aleatoriedad
 
@@ -830,3 +921,116 @@ Fuentes: [GPT-4: evaluación de capacidades y limitaciones](https://arxiv.org/ab
 Una conversación aporta contexto a la inferencia. Incorporar después esas interacciones a un entrenamiento requiere un proceso adicional.
 
 Fuente: [GPT-3: uso de instrucciones y ejemplos sin actualizar parámetros](https://arxiv.org/abs/2005.14165).
+
+## 13. Embeddings: representación y contexto
+
+### Qué es un embedding
+
+Un **embedding** es un **vector de números** que representa un elemento en un espacio matemático. En lenguaje, estas representaciones pueden capturar patrones de uso y relaciones semánticas o sintácticas.
+
+La **semántica** se refiere al significado. Por ejemplo, «violín» puede relacionarse con música, cuerdas, instrumentos y conciertos. Durante el aprendizaje, esas relaciones pueden reflejarse en la geometría de los vectores.
+
+Un vector tiene **d dimensiones**, es decir, d componentes numéricos. La información se distribuye entre muchas coordenadas; cada dimensión es una característica aprendida cuya interpretación suele ser poco intuitiva.
+
+Fuente: [Google: espacio de embeddings](https://developers.google.com/machine-learning/crash-course/embeddings/embedding-space).
+
+### Del texto al vector
+
+```text
+Texto → tokens → identificadores → tabla de embeddings
+      → vectores e información de posición → capas del Transformer
+      → representaciones contextuales
+```
+
+La capa de embeddings contiene una **matriz E** con una fila por token del vocabulario y d columnas. El identificador de un token permite recuperar su fila.
+
+Ejemplo con **identificadores y valores inventados**:
+
+| Token | ID | Embedding inicial ilustrativo |
+| --- | --- | --- |
+| «violín» | 314 | [0,80; 0,20; 0,10] |
+| «guitarra» | 572 | [0,75; 0,25; 0,12] |
+| «bicicleta» | 901 | [−0,30; 0,60; 0,80] |
+
+Se supone un token por palabra para simplificar. El **ID** identifica una fila; el **vector** contiene los valores que procesa la red. Si una palabra se divide en varios tokens, cada uno recupera su propio vector.
+
+Fuente: [PyTorch: capa Embedding y consulta de vectores por índice](https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html).
+
+### Cómo se aprenden durante el entrenamiento
+
+1. **Inicialización:** al entrenar desde cero, los valores de la tabla suelen comenzar con una inicialización aleatoria. También pueden reutilizarse embeddings preentrenados.
+2. **Predicción:** el modelo utiliza esos vectores para resolver su tarea, por ejemplo predecir tokens.
+3. **Cálculo de pérdida y gradientes:** se determina cómo ajustar los parámetros para mejorar las predicciones.
+4. **Actualización:** el optimizador modifica los embeddings entrenables junto con otros pesos de la red.
+
+El objetivo de entrenamiento y los datos determinan las relaciones aprendidas. En algunos ajustes, la tabla puede mantenerse congelada.
+
+Fuentes: [Google: aprendizaje de embeddings](https://developers.google.com/machine-learning/crash-course/embeddings/obtaining-embeddings) y [PyTorch: parámetros de la capa Embedding](https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html).
+
+### Similitud y espacio multidimensional
+
+Los vectores funcionan como coordenadas. Para compararlos se utilizan medidas como la **similitud del coseno**, que compara su orientación, o la **distancia euclídea**, que mide su separación.
+
+Con los vectores ilustrativos anteriores:
+
+| Comparación | Similitud del coseno aproximada |
+| --- | --- |
+| «violín» y «guitarra» | **0,997** |
+| «violín» y «bicicleta» | **−0,046** |
+
+En este ejemplo, los dos instrumentos tienen orientaciones más parecidas. Son valores didácticos, no resultados de un modelo real.
+
+El coseno toma valores entre **−1 y 1**; es una medida de semejanza, no una probabilidad. Las comparaciones se realizan entre vectores de un mismo espacio compatible.
+
+Fuente: [Sentence Transformers: métricas de similitud](https://www.sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html).
+
+### Embedding estático y representación contextual
+
+| Representación | De qué depende |
+| --- | --- |
+| **Embedding estático de palabra** | Asocia un vector a cada palabra de su vocabulario, como en word2vec. |
+| **Embedding inicial de token en un Transformer** | Con parámetros fijos, el mismo ID recupera la misma fila de la tabla. |
+| **Representación contextual o estado oculto** | Depende del token, la posición, la capa y el contexto que el modelo puede consultar. |
+
+Las capas de atención y las transformaciones posteriores producen **estados ocultos** (*hidden states*): vectores internos que incorporan información del contexto. En un Transformer hay representaciones por posición y por capa.
+
+Fuente: [BERT: representaciones contextuales mediante Transformer](https://arxiv.org/abs/1810.04805).
+
+### Ejemplo: «vela» según el contexto
+
+> El barco avanzó al desplegar la **vela**.
+>
+> Durante el apagón encendimos una **vela**.
+
+Suponiendo que «vela» corresponde al mismo token en ambos casos:
+
+| Paso | Contexto náutico | Contexto de iluminación |
+| --- | --- | --- |
+| **Consulta inicial** | Recupera el embedding del token «vela». | Recupera el mismo embedding del token «vela». |
+| **Procesamiento** | Incorpora información de «barco» y «desplegar». | Incorpora información de «apagón» y «encendimos». |
+| **Estado contextual** | Representa el uso relacionado con la navegación. | Representa el uso relacionado con una fuente de luz. |
+
+La representación contextual puede diferenciar ambos usos. En un modelo causal se construye con el contexto permitido por la máscara, incluido el texto anterior.
+
+Fuentes: [Google: embeddings contextuales](https://developers.google.com/machine-learning/crash-course/embeddings/obtaining-embeddings) y [BERT](https://arxiv.org/abs/1810.04805).
+
+### Qué ocurre durante la inferencia
+
+1. Se tokeniza el texto y se obtienen sus IDs.
+2. Se consultan los vectores de la tabla aprendida.
+3. Se incorpora información de posición y se procesan las capas del Transformer.
+4. Se calculan estados contextuales y, en un modelo generativo, probabilidades para continuar el texto.
+
+Habitualmente, **los parámetros permanecen fijos**. Lo que cambia entre mensajes son las representaciones calculadas para cada entrada; contextualizar un token durante el uso no modifica por sí mismo su fila en la tabla.
+
+Fuente: [Google: transformación de embeddings en representaciones contextuales](https://developers.google.com/machine-learning/crash-course/embeddings/obtaining-embeddings).
+
+### Embeddings de frases y documentos
+
+También existen modelos que producen un vector para una frase o un fragmento completo. Se utilizan en **búsqueda semántica, agrupación y comparación de textos**.
+
+Por ejemplo, una búsqueda como «arreglar una rueda pinchada» puede recuperar un documento titulado «Reparación de neumáticos de bicicleta» aunque no comparta exactamente las mismas palabras.
+
+La representación de un texto completo requiere un método o modelo diseñado para obtener ese vector.
+
+Fuente: [Sentence Transformers: representaciones de textos y similitud semántica](https://www.sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html).
