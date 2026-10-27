@@ -12,6 +12,7 @@ Notas breves y organizadas para repasar los conceptos de inteligencia artificial
 - [6. Tokens](#6-tokens)
 - [7. Determinismo y aleatoriedad](#7-determinismo-y-aleatoriedad)
 - [8. Redes neuronales](#8-redes-neuronales)
+- [9. Ejemplo en C#: puntos de un juego](#9-ejemplo-en-c-puntos-de-un-juego)
 
 ## 1. Orígenes y fechas clave
 
@@ -377,3 +378,97 @@ En una red de tipo *feedforward*, las neuronas se organizan en **capa de entrada
 Una red con varias capas ocultas es un ejemplo de **aprendizaje profundo**. Los LLM utilizan redes neuronales de gran escala.
 
 Fuente: [Google: organización en capas](https://developers.google.com/machine-learning/crash-course/neural-networks/nodes-hidden-layers).
+
+## 9. Ejemplo en C#: puntos de un juego
+
+Una red mínima con **dos entradas y una neurona lineal**, sin capas ocultas, aprende a estimar los puntos de una partida. Equivale a un modelo de regresión lineal.
+
+- **Entradas:** monedas y gemas recogidas.
+- **Salida:** puntos estimados.
+- **Parámetros aprendidos:** dos pesos y un sesgo.
+- **Datos:** ejemplos simulados con la regla **puntos = 2·monedas + 5·gemas + 3**. La función de predicción utiliza los parámetros aprendidos.
+
+![Neurona lineal que aprende los puntos de un juego a partir de monedas y gemas](assets/neurona-puntos-juego.png)
+
+```csharp
+using System;
+
+public class Program
+{
+    // Una neurona con dos entradas y activación lineal: f(z) = z.
+    static double Predecir(double monedas, double gemas,
+                           double w1, double w2, double sesgo)
+    {
+        return monedas * w1 + gemas * w2 + sesgo;
+    }
+
+    public static void Main()
+    {
+        // Cada fila contiene: monedas, gemas y puntos reales de la partida.
+        double[,] datos =
+        {
+            { 0, 0,  3 },
+            { 1, 0,  5 },
+            { 0, 1,  8 },
+            { 2, 1, 12 },
+            { 1, 2, 15 },
+            { 3, 3, 24 }
+        };
+
+        // Los valores que la neurona debe aprender empiezan en cero.
+        double w1 = 0, w2 = 0, sesgo = 0;
+        double tasa = 0.02; // Tamaño del paso de cada ajuste.
+        int epocas = 6000;  // Número de pasadas por todos los datos.
+        int cantidad = datos.GetLength(0);
+
+        for (int epoca = 0; epoca < epocas; epoca++)
+        {
+            // Acumulamos gradientes antes de actualizar los parámetros.
+            double gradW1 = 0, gradW2 = 0, gradSesgo = 0;
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                double x1 = datos[i, 0]; // Monedas de esta partida.
+                double x2 = datos[i, 1]; // Gemas de esta partida.
+                double y = datos[i, 2];  // Puntos que debería predecir.
+
+                double prediccion = Predecir(x1, x2, w1, w2, sesgo);
+                double error = prediccion - y;
+
+                // Derivadas de la pérdida: L = suma(error²) / (2 * cantidad).
+                gradW1 += error * x1;
+                gradW2 += error * x2;
+                gradSesgo += error;
+            }
+
+            // Descenso de gradiente: restamos el gradiente medio de cada parámetro.
+            w1 -= tasa * gradW1 / cantidad;
+            w2 -= tasa * gradW2 / cantidad;
+            sesgo -= tasa * gradSesgo / cantidad;
+        }
+
+        // El entrenamiento aproxima w1 = 2, w2 = 5 y sesgo = 3.
+        Console.WriteLine("w1 = {0:F4}, w2 = {1:F4}, sesgo = {2:F4}",
+                          w1, w2, sesgo);
+
+        // Esta combinación no aparece en los datos de entrenamiento.
+        double puntos = Predecir(4, 2, w1, w2, sesgo);
+        Console.WriteLine("4 monedas y 2 gemas: {0:F2} puntos", puntos);
+    }
+}
+```
+
+### Resultado
+
+```text
+w1 = 2,0000, w2 = 5,0000, sesgo = 3,0000
+4 monedas y 2 gemas: 21,00 puntos
+```
+
+El entrenamiento aproxima los pesos **2** y **5** y el sesgo **3**. La combinación de **4 monedas y 2 gemas** se utiliza después del entrenamiento.
+
+El gradiente se calcula a partir de la pérdida **L = suma((predicción − objetivo)²) / (2·cantidad)**. Cada época utiliza todos los ejemplos antes de actualizar los parámetros.
+
+**Código ejecutable:** [NeuronaPuntosJuego.cs](ejemplos/NeuronaPuntosJuego.cs). Puede copiarse en el archivo Program.cs de un proyecto de consola C#; utiliza únicamente la biblioteca estándar.
+
+Fuente conceptual: [Google: descenso de gradiente](https://developers.google.com/machine-learning/crash-course/linear-regression/gradient-descent).
