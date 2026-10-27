@@ -19,7 +19,9 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 11. [Historia: cómo llegamos hasta aquí](#11-historia-cómo-llegamos-hasta-aquí)
 12. [Práctica opcional en C#: aprender los puntos de un juego](#12-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
 
-## 1. El mapa: IA, PLN y LLM
+<a id="1-el-mapa-ia-pln-y-llm"></a>
+
+## 1. El mapa: IA, PLN y LLM ✅
 
 La **inteligencia artificial (IA)** es el campo que desarrolla sistemas capaces de realizar tareas como reconocer imágenes, interpretar mensajes o planificar acciones.
 
@@ -36,7 +38,9 @@ Dos conceptos relacionados:
 | Concepto | Qué añade | Ejemplo |
 | --- | --- | --- |
 | **Multimodalidad** | Trabajar con varios tipos de información. | Recibir una imagen y describirla con texto. |
-| **Agente basado en un LLM** | Combinar el modelo con herramientas y un proceso de varios pasos. | Consultar existencias, calcular necesidades y preparar una propuesta de compra. |
+| **Agente basado en un LLM** | Combinar el modelo con herramientas para realizar una tarea. | Añadir un producto a una lista de la compra. |
+
+**Ejemplo sencillo de agente:** le dices «Añade leche a mi lista de la compra». El agente interpreta la petición, utiliza una herramienta para abrir y actualizar la lista, comprueba que la leche está anotada y te confirma que ha terminado. El objetivo que le das se convierte en acciones sobre una aplicación.
 
 Las capacidades concretas dependen del sistema. [Referencias: GPT-4](https://arxiv.org/abs/2303.08774) y [ReAct](https://arxiv.org/abs/2210.03629).
 
@@ -53,23 +57,29 @@ Las capacidades concretas dependen del sistema. [Referencias: GPT-4](https://arx
 
 </details>
 
-## 2. Tokens: dividir el texto en piezas
+<a id="2-tokens-dividir-el-texto-en-piezas"></a>
+
+## 2. Tokens: dividir el texto en piezas ✅
 
 La **tokenización** divide el texto en unidades llamadas **tokens**. Un token puede ser una palabra, un fragmento, un signo o una secuencia que incluya espacios.
 
-La analogía es una caja de piezas de construcción: unas piezas grandes representan fragmentos frecuentes; otras pequeñas permiten formar expresiones nuevas. Así se evita guardar cada palabra posible como una pieza distinta.
+Cuando escribes un mensaje como **«Necesito un cargador»**, el sistema lo prepara antes de pasarlo al modelo. Puede conservar algunas palabras completas y dividir otras en fragmentos reutilizables, como «carga» y «dor». Así representa muchas palabras combinando un vocabulario limitado de fragmentos.
 
 El **tokenizador** aplica las reglas de división y asigna a cada token un **identificador (ID)** de su vocabulario. Es como el número de una ficha de catálogo: identifica una entrada, pero su valor numérico no expresa significado.
 
 Ejemplo con división e identificadores inventados:
 
 ```text
-«Buenas tardes!» → [«Buenas», « tardes», «!»] → [48, 207, 9]
+«Necesito un cargador» → [«Necesito», « un», « carga», «dor»] → [48, 207, 310, 92]
 ```
 
-El espacio forma parte del segundo token. Otro tokenizador podría dividir la frase de otra manera. Los acentos, emojis y palabras frecuentes tampoco tienen un número universal de tokens. [Referencia: palabras y tokens](https://web.stanford.edu/~jurafsky/slp3/2.pdf).
+Los espacios forman parte del segundo y tercer token. Esta división es ilustrativa: otro tokenizador podría conservar «cargador» completo o dividirlo de otra manera. Los acentos, emojis y palabras frecuentes tampoco tienen un número universal de tokens. [Referencia: palabras y tokens](https://web.stanford.edu/~jurafsky/slp3/2.pdf).
 
 **El proceso habitual** prepara el texto según sus reglas, delimita fragmentos, los segmenta, asigna IDs y, cuando corresponde, añade tokens especiales de inicio, fin o separación. La **decodificación** convierte los IDs de salida en texto. Algunas transformaciones previas, como pasar a minúsculas, pueden impedir recuperar exactamente el original. [Referencia: proceso de tokenización](https://huggingface.co/docs/tokenizers/pipeline).
+
+![Comparación de seis métodos de tokenización: palabras completas, caracteres, bytes UTF-8, fusiones BPE, búsqueda de fragmentos con WordPiece y segmentaciones probables con Unigram](assets/metodos-tokenizacion.png)
+
+En la imagen, **palabras, caracteres y bytes** muestran distintos tamaños de unidad. **BPE, WordPiece y Unigram** aprenden vocabularios de fragmentos y aplican reglas para segmentar. Se omiten los espacios en los ejemplos visuales para centrarse en cada método.
 
 | Método | Idea básica |
 | --- | --- |
@@ -83,18 +93,19 @@ El espacio forma parte del segundo token. Otro tokenizador podría dividir la fr
 **SentencePiece** es una herramienta para crear y aplicar tokenizadores, incluidos BPE y Unigram. [Referencias: comparación de métodos](https://huggingface.co/docs/transformers/tokenizer_summary) y [SentencePiece](https://github.com/google/sentencepiece).
 
 <details>
-<summary>Ejemplo paso a paso: cómo aprende BPE</summary>
+<summary>BPE paso a paso: por qué se unen unos fragmentos y otros no</summary>
 
-Con los textos «pato», «pato» y «patos», una secuencia posible de fusiones es:
+Imagina unos textos en los que aparecen **«mar» 8 veces, «mares» 4 veces y «mapa» 3 veces**. BPE empieza aquí separando las letras y cuenta qué pares aparecen juntos más veces.
 
-```text
-p | a | t | o → pa | t | o → pat | o → pato
-p | a | t | o | s → pa | t | o | s → pat | o | s → pato | s
-```
+| Paso | Qué encuentra | Qué aprende |
+| --- | --- | --- |
+| **1. Contar** | «m» seguido de «a» aparece en las tres palabras: 8 + 4 + 3 = **15 veces**. Es el par más frecuente. | Unir «m» + «a» para crear **«ma»**. |
+| **2. Volver a contar** | Después de esa unión, «ma» seguido de «r» aparece en «mar» y «mares»: 8 + 4 = **12 veces**. Es el nuevo par más frecuente. | Unir «ma» + «r» para crear **«mar»**. |
+| **3. Usar las reglas** | Si detenemos el aprendizaje tras esas dos fusiones, ya podemos dividir los textos con las unidades aprendidas. | «mar» → **[mar]**; «mares» → **[mar, e, s]**; «mapa» → **[ma, p, a]**. |
 
-Hay pares empatados en frecuencia; esta es una posible elección de desempates. El ejemplo omite espacios y marcas de final de palabra.
+**Qué hemos ganado:** «mar» se procesa con un token en vez de tres, y «ma» se reutiliza también en «mapa». Si continuamos aprendiendo, otras fusiones podrían cambiar la división.
 
-Las fusiones se aprenden al preparar el tokenizador. Después se aplican a los textos nuevos. [Referencia: BPE](https://huggingface.co/learn/llm-course/chapter6/5).
+Se trabaja dentro de cada palabra y se omiten espacios y marcas de final. Las uniones se aprenden por frecuencia; no necesitan coincidir con raíces o sufijos gramaticales. Después se aplican las reglas ya aprendidas a los mensajes nuevos. [Referencia: aprendizaje de BPE](https://huggingface.co/learn/llm-course/chapter6/5).
 
 </details>
 
@@ -113,7 +124,9 @@ Se tokenizan tanto los datos de entrenamiento como los mensajes que recibe el mo
 
 </details>
 
-## 3. Contexto: la información disponible
+<a id="3-contexto-la-información-disponible"></a>
+
+## 3. Contexto: la información disponible ✅
 
 El **contexto** es la información que el modelo puede consultar para interpretar un mensaje o continuar un texto.
 
@@ -142,7 +155,9 @@ Conviene distinguir **entrenamiento**, que ajusta lo aprendido por el modelo, de
 
 </details>
 
-## 4. N-gramas: predecir contando
+<a id="4-n-gramas-predecir-contando"></a>
+
+## 4. N-gramas: predecir contando ✅
 
 Un **n-grama** es una secuencia de *n* tokens consecutivos. Un modelo de n-gramas predice el siguiente token mirando los **n − 1 anteriores** y contando continuaciones en sus ejemplos.
 
@@ -199,11 +214,17 @@ Aumentar *n* amplía el historial, aunque exige observar muchas más combinacion
 
 </details>
 
-## 5. Redes neuronales: aprender ajustando
+<a id="5-redes-neuronales-aprender-ajustando"></a>
+
+## 5. Redes neuronales: aprender ajustando ✅
 
 Una **red neuronal** conecta unidades matemáticas llamadas **neuronas artificiales**. Su inspiración biológica es simplificada: reciben señales, las combinan y producen una salida.
 
-Piensa en una mesa de mezclas: cada control modifica cuánto contribuye una señal al resultado. En una neurona, esos controles son los **pesos**; también existe un **sesgo**, que desplaza el resultado de partida. Pesos y sesgos son **parámetros**, valores que pueden ajustarse al entrenar.
+Piensa en calcular el precio de un taxi: una estimación sencilla suma **kilómetros × precio por kilómetro + minutos de espera × precio por minuto + tarifa inicial**.
+
+En una neurona, los kilómetros y minutos serían las **entradas**; los precios que los multiplican, los **pesos**; y la tarifa inicial, el **sesgo**. Por ejemplo, 3 km × 2 €/km + 4 min × 0,50 €/min + 3 € de inicio = **11 €**. El sesgo aporta una cantidad incluso cuando las entradas valen cero.
+
+Los pesos y el sesgo son **parámetros**. Al entrenar con trayectos y precios conocidos, el modelo ajustaría esos valores para aproximar los precios observados. Las cifras de este ejemplo son inventadas.
 
 ![Neurona: entradas multiplicadas por pesos, suma con sesgo, activación y salida; debajo, aprendizaje de una suma](assets/neurona-artificial.png)
 
@@ -215,7 +236,7 @@ La **función de activación** transforma esa suma antes de entregarla como sali
 
 Para aprender a sumar basta una salida lineal, que deja la suma tal cual. Con pesos 1 y 1 y sesgo 0, las entradas 4 y 7 producen 11. [Referencia: neuronas y activaciones](https://developers.google.com/machine-learning/crash-course/neural-networks/nodes-hidden-layers).
 
-**Aprender** consiste en predecir, medir el desacierto y ajustar los parámetros. La medida del desacierto se llama **pérdida**. El **optimizador** decide ajustes para reducirla, como afinar los controles de la mesa de mezclas después de escuchar el resultado.
+**Aprender** consiste en predecir, medir el desacierto y ajustar los parámetros. La medida del desacierto se llama **pérdida**. El **optimizador** calcula ajustes para reducirla: en el ejemplo del taxi, modificaría los importes estimados al comparar las predicciones con los precios conocidos.
 
 La **tasa de aprendizaje** controla el tamaño de cada ajuste: pasos excesivos pueden desestabilizar el aprendizaje; pasos muy pequeños lo hacen lento. El ciclo completo se desarrolla en [entrenamiento de un LLM](#9-entrenamiento-de-la-arquitectura-al-llm). [Referencia: descenso de gradiente](https://developers.google.com/machine-learning/crash-course/linear-regression/gradient-descent).
 

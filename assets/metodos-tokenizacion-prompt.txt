@@ -1,0 +1,17 @@
+Modo: herramienta integrada ImageGen.
+Destino: assets/metodos-tokenizacion.png
+
+Use case: scientific-educational.
+Asset type: original Spanish study-notes infographic, PNG raster illustration.
+Primary request: explain SIX tokenization methods for an absolute beginner using precise, very legible Spanish text and colorful rounded token chips. Portrait canvas, about 1600 x 2000 or larger, off-white background, dark navy text, professional friendly textbook illustration, generous whitespace. Exactly six numbered panels in a 2-column by 3-row grid, read left to right. Small tasteful relevant icons, no clutter. Distinguish methods with different accent colors. Large typography throughout; diagrams more prominent than prose.
+Main title verbatim: "Cómo se divide el texto en tokens"
+Subtitle verbatim: "Seis métodos, seis formas de segmentar"
+Each panel has exactly the following title, caption, and illustrated example. Each token is a separate rounded chip. Quotes below delimit text and are not printed.
+Panel 1 title: "1. Palabras". Caption: "Una unidad por palabra". Show input "café caliente" above an arrow leading to TWO chips "café" and "caliente". Small note: "Puede necesitar un vocabulario grande".
+Panel 2 title: "2. Caracteres". Caption: "Una unidad por carácter". Show input "café" above an arrow leading to FOUR chips "c", "a", "f", "é". Small note: "Pocas unidades distintas; más tokens por texto".
+Panel 3 title: "3. Bytes". Caption: "Unidades de codificación UTF-8". Show input "café" above an arrow leading to FIVE hexadecimal chips "63", "61", "66", "C3", "A9". Connect the final two chips with a small bracket labelled "é ocupa 2 bytes". Small note: "Valores en hexadecimal".
+Panel 4 title: "4. BPE". Expanded name smaller: "Byte Pair Encoding". Caption: "Aprende a unir pares frecuentes". Illustrate two successive merge operations using chips and arrows, line 1: "m" + "a" → "ma"; line 2: "ma" + "r" → "mar". Small note: "Las fusiones se aprenden de los datos". Do not imply those merges are universal.
+Panel 5 title: "5. WordPiece". Caption: "Busca el fragmento conocido más largo". Show input "mares" above an arrow leading to TWO chips "mar", "##es". Small note: "## indica continuación de palabra". This is a fictional vocabulary to illustrate greedy segmentation.
+Panel 6 title: "6. Unigram". Caption: "Compara divisiones por su probabilidad". Show input "mares" branching to two candidate rows: row A chips "mar" and "es"; row B chips "ma" and "res". Below both branches the text: "Elige la división más probable". Do not mark either as the winner; that depends on learned token probabilities.
+Full width footer verbatim: "Ejemplos didácticos: la división real depende del tokenizador."
+Accuracy constraints: exactly SIX panels, each method once, NO copied screenshots. Do not confuse characters and bytes. The é character must appear once in character chips but TWO separate byte chips C3 A9. Do not split café into cafe without accent. Do not add IDs or vector embeddings. No fake numerical probabilities. All text in correct Spanish, no watermark.
