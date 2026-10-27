@@ -15,7 +15,7 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 7. [RNN: leer con una memoria que se actualiza](#7-rnn-leer-con-una-memoria-que-se-actualiza)
 8. [Transformer: relacionar partes del texto](#8-transformer-relacionar-partes-del-texto)
 9. [Entrenamiento: de la arquitectura al LLM](#9-entrenamiento-de-la-arquitectura-al-llm)
-10. [Generación: elegir la siguiente pieza](#10-generación-elegir-la-siguiente-pieza)
+10. [Inferencia: del mensaje a la respuesta](#10-inferencia-del-mensaje-a-la-respuesta)
 11. [Historia: cómo llegamos hasta aquí](#11-historia-cómo-llegamos-hasta-aquí)
 12. [Práctica opcional en C#: aprender los puntos de un juego](#12-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
 
@@ -455,7 +455,7 @@ Son enfoques posibles del **posentrenamiento**, las etapas posteriores al preent
 
 </details>
 
-Tras entrenar, llega la [inferencia](#3-contexto-la-información-disponible): usar lo aprendido para responder. La siguiente sección explica cómo se elige cada continuación.
+Tras entrenar, llega la [inferencia](#10-inferencia-del-mensaje-a-la-respuesta): usar lo aprendido para responder. La siguiente sección explica cómo se construye cada continuación.
 
 **Comprueba lo aprendido**
 
@@ -470,41 +470,107 @@ Tras entrenar, llega la [inferencia](#3-contexto-la-información-disponible): us
 
 </details>
 
-## 10. Generación: elegir la siguiente pieza
+## 10. Inferencia: del mensaje a la respuesta
 
-Al generar texto, un modelo causal calcula probabilidades para el siguiente token. Después, una regla de selección elige uno y el proceso continúa.
+La **inferencia** es el uso de un modelo ya entrenado. Para generar texto, un LLM causal calcula posibles continuaciones, elige un token y vuelve a continuar con él.
 
-Con valores inventados, tras «El excursionista lleva una»:
+Es como escribir con un autocompletado que se actualiza después de cada elección. La respuesta se construye paso a paso; el contexto va creciendo y los parámetros habitualmente permanecen fijos.
+
+### El recorrido paso a paso
+
+| Paso | Qué ocurre |
+| --- | --- |
+| **1. Preparar el contexto** | Se reúne el **prompt** —instrucción, pregunta o texto inicial— junto con las instrucciones y el historial disponibles. |
+| **2. Tokenizar** | El [tokenizador](#2-tokens-dividir-el-texto-en-piezas) convierte ese texto en IDs de tokens compatibles con el modelo. |
+| **3. Consultar embeddings** | Cada ID recupera su vector de la [tabla aprendida](#6-embeddings-representar-con-números). |
+| **4. Incorporar posición** | Se introduce información sobre el orden de los tokens mediante el mecanismo de la arquitectura. |
+| **5. Procesar las capas** | Las representaciones recorren las capas del [Transformer](#8-transformer-relacionar-partes-del-texto). Los pasos 6 y 7 ocurren dentro de ellas. |
+| **6. Aplicar autoatención causal** | Cada posición combina información de sí misma y de posiciones anteriores permitidas. La máscara impide consultar tokens futuros. |
+| **7. Transformar las representaciones** | La atención y las demás operaciones de las capas producen estados ocultos contextuales. El estado final de la última posición disponible se utiliza para predecir la continuación. |
+| **8. Calcular posibilidades** | Una capa de salida convierte ese estado en puntuaciones para el vocabulario, llamadas **logits**. Softmax permite convertirlas en probabilidades. |
+| **9. Elegir y añadir un token** | La regla de selección escoge un ID y lo incorpora a la secuencia. |
+| **10. Continuar o terminar** | Se calcula la siguiente continuación hasta alcanzar una señal de fin, un límite de tokens u otra condición de parada. |
+
+Las operaciones internas se desarrollan en el [diagrama del Transformer](#8-transformer-relacionar-partes-del-texto). La decodificación de los IDs permite mostrar texto; puede hacerse progresivamente mientras llega la respuesta. [Referencias: generación de texto](https://huggingface.co/docs/transformers/llm_tutorial) y [arquitectura original](https://arxiv.org/abs/1706.03762).
+
+```mermaid
+flowchart TD
+    A["Contexto inicial"] --> B["Tokenización"]
+    B --> C["Embeddings, posición y capas del Transformer"]
+    C --> D["Probabilidades del siguiente token"]
+    D --> E["Elegir un token y añadirlo a la secuencia"]
+    E --> F{"¿Se cumple una condición de parada?"}
+    F -->|No| C
+    F -->|Sí| G["Respuesta terminada"]
+    classDef entrada fill:#e3f2fd,stroke:#1565c0,color:#102a43;
+    classDef calculo fill:#ede7f6,stroke:#673ab7,color:#30204a;
+    classDef salida fill:#e8f5e9,stroke:#2e7d32,color:#16351d;
+    class A,B entrada;
+    class C,D calculo;
+    class E,F,G salida;
+```
+
+### Ejemplo: completar una frase
+
+Texto inicial: **«Marta guardó las llaves en»**. Para simplificar, cada palabra y signo de puntuación cuenta como un token; la segmentación real puede ser distinta.
+
+Una distribución inventada para el siguiente token sería:
 
 | Continuación | Probabilidad |
 | --- | --- |
-| mochila | 60 % |
-| linterna | 30 % |
-| cantimplora | 10 % |
+| el | 50 % |
+| la | 25 % |
+| su | 15 % |
+| Otras opciones, agrupadas | 10 % |
 
 Hay dos formas sencillas de elegir:
 
-- **Selección determinista:** escoger la opción más probable. Aquí sería «mochila».
-- **Muestreo:** sortear según las probabilidades, como sacar una papeleta de una bolsa con 60 de mochila, 30 de linterna y 10 de cantimplora. Cualquiera de las tres puede salir.
+- **Selección determinista:** escoger el token más probable; aquí, «el».
+- **Muestreo:** sortear según las probabilidades, como sacar una papeleta de una bolsa. Puede salir una opción diferente de «el».
 
-**Probabilístico** describe las posibilidades calculadas; **aleatorio** describe una forma de elegir. Por eso un modelo probabilístico puede usar una selección determinista. [Referencia: probabilidades y muestreo](https://web.stanford.edu/~jurafsky/slp3/3.pdf).
+**Probabilístico** describe las posibilidades calculadas; **aleatorio** describe una forma de elegir. Un modelo probabilístico puede utilizar una selección determinista. [Referencia: estrategias de selección](https://huggingface.co/docs/transformers/generation_strategies).
+
+Una continuación posible sería:
+
+```text
+Marta guardó las llaves en        → el
+Marta guardó las llaves en el     → cajón
+Marta guardó las llaves en el cajón → .
+Marta guardó las llaves en el cajón. → [fin]
+```
+
+En cada fila se calculan nuevas probabilidades con el contexto ampliado. **[fin]** representa aquí una señal especial de terminación; el punto por sí solo no obliga a detenerse. Elegir una continuación probable tampoco garantiza que lo escrito sea cierto.
+
+<details>
+<summary>Ampliación: cómo se evita recalcular todo</summary>
+
+La primera lectura del prompt suele llamarse **prefill**. Después llega la **generación incremental** o *decoding*: se producen nuevos tokens sucesivamente.
+
+Para acelerar ese ciclo, una **caché KV** conserva las claves y los valores de atención de los tokens ya procesados. Es como guardar resultados intermedios de una cuenta para reutilizarlos. Así, cada nuevo paso puede aprovechar el trabajo anterior y procesar la nueva entrada sin recalcular todas las representaciones previas. Esta memoria de cálculo no implica entrenar el modelo. [Referencia: caché de atención](https://huggingface.co/docs/transformers/cache_explanation).
+
+</details>
+
+<details>
+<summary>Ampliación: determinismo, azar y semillas</summary>
 
 En programación, un proceso es **determinista** si repite el resultado con las mismas entradas, estado y condiciones. Sumar 8 y 5 siempre da 13; barajar tarjetas incorpora azar.
 
 Muchos programas usan **pseudoaleatoriedad**: algoritmos que generan secuencias con apariencia aleatoria. Una **semilla** fija el punto de partida. Es como escoger dónde empezar a leer una lista muy larga: reiniciar el mismo generador con la misma semilla permite repetir la secuencia bajo las mismas condiciones; las llamadas sucesivas no tienen por qué dar el mismo número. [Referencia: generadores y semillas](https://docs.python.org/3/library/random.html).
 
-Repetir exactamente una respuesta de un LLM depende también del modelo, el contexto, la configuración y la ejecución. Elegir siempre la continuación más probable tampoco garantiza que la respuesta sea correcta.
+Repetir exactamente una respuesta de un LLM depende también del modelo, el contexto, la configuración y las condiciones de ejecución.
+
+</details>
 
 **Comprueba lo aprendido**
 
-1. Si «mochila» tiene un 60 %, ¿el muestreo está obligado a elegirla?
-2. ¿Fijar una semilla hace que todas las llamadas de un generador produzcan el mismo valor?
+1. ¿Qué ocurre con el token elegido antes de predecir el siguiente?
+2. ¿Qué puede detener la generación además de un token especial de fin?
 
 <details>
 <summary>Ver respuestas</summary>
 
-1. No: es la más probable, pero pueden salir las otras opciones.
-2. No: permite reproducir una secuencia al reiniciar el generador en las mismas condiciones.
+1. Se añade a la secuencia: tras elegir «el», se continúa a partir de «Marta guardó las llaves en el» y del resto del contexto disponible.
+2. Un límite de tokens u otra condición de parada configurada. Un punto por sí solo no obliga a terminar.
 
 </details>
 
