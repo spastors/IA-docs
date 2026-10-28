@@ -1,0 +1,43 @@
+Modo: herramienta integrada ImageGen.
+Destino: assets/muestreo-top-k-top-p.png
+
+PROMPT INICIAL
+
+Use case: scientific-educational.
+Asset type: original Spanish PNG infographic for beginner AI study notes.
+Primary request: explain top_k versus top_p sampling with highlighted candidate tables, inspired by classroom probability examples but entirely new content. Portrait about 1600 x 2000 or larger, clean white/off-white background, dark navy text, generous spacing, bright blue and purple headers and green selection highlights. Large legible typography, no dark brick backdrop. All Spanish labels exact and grammatically correct.
+Main title: "Top-k y Top-p: qué opciones pueden salir"
+Subtitle: "Ejemplo: «La mochila es ____»"
+Small note near subtitle: "Probabilidades inventadas. Una palabra por token para simplificar."
+Layout:
+1. A full-width top base table titled "Antes de filtrar", exactly FIVE rows in descending probability:
+"ligera" "40 %"
+"cómoda" "30 %"
+"resistente" "15 %"
+"grande" "10 %"
+"pequeña" "5 %"
+Column labels "Candidato" and "Probabilidad". These sum to 100%. Use a tasteful small backpack icon near this introductory table.
+2. Two equally sized side-by-side main panels, with exactly these headings and table details:
+LEFT blue panel: "TOP-K = 3"
+Explanatory sentence: "Conserva los 3 candidatos más probables."
+Repeat all FIVE rows with the SAME probabilities. Highlight the first THREE rows (ligera 40%, cómoda 30%, resistente 15%) together with pale green fill and a thick green rectangular outline. Gray out the last TWO rows, but keep their text readable. Below the table, small callout: "Con top_k = 1, solo quedaría «ligera»."
+RIGHT purple panel: "TOP-P = 0.60"
+Explanatory sentence: "Conserva candidatos hasta alcanzar el 60 %."
+Repeat all FIVE rows with columns "Candidato", "Probabilidad", "Acumulada":
+"ligera" "40 %" "40 %"
+"cómoda" "30 %" "70 %"
+"resistente" "15 %" "85 %"
+"grande" "10 %" "95 %"
+"pequeña" "5 %" "100 %"
+Highlight ONLY the first TWO rows (ligera and cómoda) together with pale green fill and thick green rectangular outline. Gray out last THREE rows. Mark crossing 60% at the second row, 70% cumulative, with a clear arrow and callout "40 % + 30 % = 70 %: ya alcanza el 60 %". Below the table, small callout: "Con top_p = 0.80, quedarían las tres primeras: 85 %."
+3. Full-width footer summary:
+"Top-k fija una cantidad. Top-p fija un umbral de probabilidad acumulada."
+Then a smaller box titled "¿Y después?" with sentence:
+"Se reajustan las probabilidades de los candidatos conservados para sumar 100 % y se elige un token."
+And final note:
+"Los porcentajes de las tablas son los originales, antes de reajustar."
+Scientific constraints: The 0.60 threshold must retain TWO rows (70%), not one or three. The 0.80 threshold example retains THREE rows (85%). Show original probabilities, do NOT change them to 50/50 after filtering. A top_k of 3 means three candidates for the NEXT token, not three output tokens. Do not claim the settings guarantee truth, creativity, or factuality. No screenshots copied, no watermarks, no code. Keep all Spanish text readable and avoid label overlap.
+
+AJUSTE DE LEGIBILIDAD
+
+Edit this Spanish top-k/top-p infographic. Preserve all numerical values, examples, selected green rows, table structure, top-k panel, backpack, footer, colors, and title exactly. Make ONLY this localized layout correction in the RIGHT top-p panel: remove the purple speech bubble that currently overlaps the header of the third column. Restore the clearly visible third-column header "Acumulada". Retain the useful arithmetic "40 % + 30 % = 70 %" as a small plain-text note ABOVE the table and BELOW the sentence "Conserva candidatos hasta alcanzar el 60 %.", with enough vertical spacing to avoid overlap. The arrow may be removed if it causes overlap. You may slightly increase height of both lower panels equally to fit. Everything must remain readable with no text covering headers, percentages, or rows. Preserve the selected first TWO right-panel rows and first THREE left-panel rows. Do not change content or add any new explanations.

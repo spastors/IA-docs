@@ -18,6 +18,8 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 10. [Inferencia: del mensaje a la respuesta](#10-inferencia-del-mensaje-a-la-respuesta)
 11. [Historia: cómo llegamos hasta aquí](#11-historia-cómo-llegamos-hasta-aquí)
 12. [Práctica opcional en C#: aprender los puntos de un juego](#12-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
+13. [Práctica con Ollama: ejecutar modelos locales](#13-práctica-con-ollama-ejecutar-modelos-locales)
+14. [Prompts: cómo pedir lo que necesitas](#14-prompts-cómo-pedir-lo-que-necesitas)
 
 <a id="1-el-mapa-ia-pln-y-llm"></a>
 
@@ -241,6 +243,8 @@ Para aprender a sumar basta una salida lineal, que deja la suma tal cual. Con pe
 La **tasa de aprendizaje** controla el tamaño de cada ajuste: pasos excesivos pueden desestabilizar el aprendizaje; pasos muy pequeños lo hacen lento. El ciclo completo se desarrolla en [entrenamiento de un LLM](#9-entrenamiento-de-la-arquitectura-al-llm). [Referencia: descenso de gradiente](https://developers.google.com/machine-learning/crash-course/linear-regression/gradient-descent).
 
 Al conectar muchas neuronas aparecen **capas**: entrada, capas intermedias u **ocultas**, y salida. «Ocultas» significa internas al cálculo. El **aprendizaje profundo** utiliza redes con múltiples capas de procesamiento.
+
+**Vídeo de apoyo:** [¿Qué es una red neuronal? Parte 1: La neurona — DotCSV](https://youtu.be/MRIv2IwFTPg).
 
 **Comprueba lo aprendido**
 
@@ -562,6 +566,35 @@ Marta guardó las llaves en el cajón. → [fin]
 
 En cada fila se calculan nuevas probabilidades con el contexto ampliado. **[fin]** representa aquí una señal especial de terminación; el punto por sí solo no obliga a detenerse. Elegir una continuación probable tampoco garantiza que lo escrito sea cierto.
 
+### Temperatura, top-k y top-p
+
+Estos ajustes controlan cómo se elige el **siguiente token** durante la inferencia. Piensa en una lista de sugerencias ordenadas de más a menos probables:
+
+| Ajuste | Pregunta que resuelve |
+| --- | --- |
+| **Temperatura** | ¿Cuánto favorecemos las opciones que ya son más probables? |
+| **Top-k** | ¿Con cuántas opciones de la lista nos quedamos? |
+| **Top-p** | ¿Cuántas opciones necesitamos para acumular una probabilidad determinada? |
+
+![Comparación con «La mochila es»: ligera 40 %, cómoda 30 %, resistente 15 %, grande 10 % y pequeña 5 %. Top-k de 3 conserva las tres primeras; top-p de 0.60 conserva las dos primeras, que acumulan el 70 %](assets/muestreo-top-k-top-p.png)
+
+**Temperatura:** modifica la concentración de las probabilidades. Un valor bajo, como **0.2**, favorece más las opciones mejor puntuadas y suele producir respuestas más predecibles. Al subirla, las opciones menos probables ganan peso relativo y puede aumentar la variedad. Una temperatura baja con muestreo aún puede dar resultados distintos. [Referencia: temperatura y top-k](https://huggingface.co/docs/transformers/internal/generation_utils#transformers.TemperatureLogitsWarper).
+
+**Top-k:** conserva los *k* candidatos más probables y descarta el resto. En el ejemplo, **top_k = 1** deja solo «ligera»; **top_k = 3** permite «ligera», «cómoda» y «resistente». Un *k* pequeño restringe las elecciones; uno mayor permite más alternativas. Con *k* mayor que 1 todavía puede haber azar, y las opciones no se eligen todas con la misma probabilidad.
+
+**Top-p**, o **muestreo de núcleo**, ordena los candidatos y conserva el conjunto mínimo cuya probabilidad acumulada alcanza el umbral:
+
+- **top_p = 0.60:** el 40 % de «ligera» no basta; al sumar el 30 % de «cómoda» se llega al **70 %**. Se conservan ambas.
+- **top_p = 0.80:** hace falta añadir «resistente» para llegar al **85 %**. Se conservan tres opciones.
+
+El umbral se expresa entre 0 y 1: **0.60 significa 60 %**, no el 60 % del número de candidatos. Tras filtrar, se reajustan las probabilidades para que las opciones conservadas sumen 100 %. Con las dos primeras, pasarían a aproximadamente **57,1 % y 42,9 %**. [Referencia: muestreo de núcleo](https://arxiv.org/abs/1904.09751).
+
+En la imagen se estudia cada filtro por separado. **Los ajustes pueden combinarse:** `top_p` puede recortar opciones que `top_k` había permitido. Si solo queda un candidato, cambiar la temperatura no crea alternativas.
+
+Estos controles regulan la variedad, no verifican los hechos. Una **alucinación** es información inventada presentada como cierta; puede aparecer incluso con ajustes muy restrictivos. Más variedad no equivale automáticamente a mayor creatividad útil ni implica necesariamente más errores.
+
+Los [ejemplos de Ollama](#ajustar-la-generación-durante-una-conversación) muestran cómo aplicar estos valores y guardarlos en una configuración.
+
 <details>
 <summary>Ampliación: cómo se evita recalcular todo</summary>
 
@@ -585,13 +618,13 @@ Repetir exactamente una respuesta de un LLM depende también del modelo, el cont
 **Comprueba lo aprendido**
 
 1. ¿Qué ocurre con el token elegido antes de predecir el siguiente?
-2. ¿Qué puede detener la generación además de un token especial de fin?
+2. Con las probabilidades de la mochila, ¿qué candidatos conserva `top_p = 0.60`?
 
 <details>
 <summary>Ver respuestas</summary>
 
 1. Se añade a la secuencia: tras elegir «el», se continúa a partir de «Marta guardó las llaves en el» y del resto del contexto disponible.
-2. Un límite de tokens u otra condición de parada configurada. Un punto por sí solo no obliga a terminar.
+2. «Ligera» y «cómoda»: suman 70 %, el primer acumulado que alcanza el umbral del 60 %.
 
 </details>
 
@@ -735,5 +768,226 @@ Cada época calcula el error sobre todos los ejemplos antes de actualizar parám
 
 1. 2 × 2 + 4 × 5 + 3 = **27 puntos**. Puedes comprobarlo con `Predecir(2, 4, w1, w2, sesgo)`.
 2. La puntuación base: **3 puntos**.
+
+</details>
+
+## 13. Práctica con Ollama: ejecutar modelos locales
+
+**Ollama** es una herramienta para descargar y ejecutar modelos de IA en tu ordenador. Permite practicar la [inferencia](#10-inferencia-del-mensaje-a-la-respuesta) con un modelo ya entrenado.
+
+Piensa en un reproductor y sus archivos: **Ollama es el programa que ejecuta; Gemma es una familia de modelos que puedes cargar**. Para trabajar en local necesitas descargar una variante compatible y disponer de recursos suficientes.
+
+### Cómo leer el nombre de un modelo
+
+```text
+ollama run gemma4:e2b
+│      │   │      └─ etiqueta de la variante elegida
+│      │   └──────── familia y generación del modelo: Gemma 4
+│      └──────────── acción: ejecutar
+└─────────────────── programa: Ollama
+```
+
+Después de los dos puntos se indica la **etiqueta**, o *tag*. Conviene escribirla para elegir la variante concreta. [Referencia: catálogo de Gemma 4](https://ollama.com/library/gemma4).
+
+La **B** procede del inglés *billion*: **mil millones de parámetros**. Los parámetros son los valores aprendidos que vimos en [redes neuronales](#5-redes-neuronales-aprender-ajustando); esta cifra expresa tamaño, no gigabytes de memoria ni tokens de contexto.
+
+| Variante | Qué significa |
+| --- | --- |
+| **e2b** | Tamaño efectivo de unos 2.000 millones de parámetros. La **E** significa *effective*. |
+| **e4b** | Tamaño efectivo de unos 4.000 millones de parámetros. |
+| **12b** | Variante de unos 12.000 millones de parámetros. |
+| **26b** | Modelo de mezcla de expertos: tiene unos 26.000 millones de parámetros totales y utiliza alrededor de 4.000 millones por token. |
+| **31b** | Modelo denso de unos 31.000 millones de parámetros. |
+
+En E2B y E4B, el tamaño **efectivo** no coincide con todos los parámetros almacenados: también hay componentes como los embeddings. En una **mezcla de expertos (MoE)**, distintos grupos de parámetros se activan según la entrada, como consultar a parte de un equipo de especialistas. Un modelo **denso** utiliza sus bloques de forma general, sin esa selección de expertos. [Referencia: variantes de Gemma 4](https://ai.google.dev/gemma/docs/core).
+
+### Qué significan las etiquetas de capacidades
+
+| Etiqueta | Qué indica |
+| --- | --- |
+| **vision** | Puede recibir imágenes para responder sobre ellas. |
+| **audio** | Admite tareas con audio; hay que comprobar qué variante y aplicación las soportan. |
+| **tools** | Puede solicitar llamadas a herramientas. La aplicación debe proporcionar esas herramientas y ejecutar las acciones. |
+| **thinking** | Ofrece un modo de procesamiento adicional antes de la respuesta, según su configuración. |
+| **cloud** | Hay variantes que se ejecutan en servidores remotos. Para ejecutar en tu equipo, elige una variante local como `gemma4:e2b`. |
+
+Las etiquetas de la familia reúnen capacidades de sus variantes. Consulta la ficha concreta: no todas las variantes ni todas las interfaces ofrecen las mismas modalidades. [Referencias: catálogo de Ollama](https://ollama.com/library/gemma4) y [capacidades de Gemma](https://ai.google.dev/gemma/docs/core).
+
+### Instalación y primera prueba en Windows
+
+1. Descarga el instalador desde [Ollama para Windows](https://ollama.com/download/windows) y ejecútalo. Ollama queda disponible como aplicación y como comando de terminal.
+2. Abre una ventana nueva de PowerShell y comprueba la instalación:
+
+```powershell
+ollama --version
+```
+
+3. Descarga y abre el modelo:
+
+```powershell
+ollama run gemma4:e2b
+```
+
+Si no está descargado, la primera ejecución lo obtiene de Internet. Cuando aparezca el indicador de conversación, escribe, por ejemplo:
+
+```text
+Explica en tres frases cómo se forma un arcoíris.
+```
+
+Para salir de la conversación, escribe **`/bye`**. Después puedes volver a ejecutarlo con el mismo comando. Un modelo local ya descargado puede generar respuestas sin conexión, siempre que la tarea no utilice servicios externos. [Referencias: instalación en Windows](https://docs.ollama.com/windows), [comandos](https://docs.ollama.com/cli) y [modo interactivo](https://github.com/ollama/ollama/blob/main/cmd/interactive.go).
+
+### Comandos para el día a día
+
+Estos comandos se escriben en PowerShell, fuera de la conversación con el modelo:
+
+| Comando | Para qué sirve |
+| --- | --- |
+| `ollama pull gemma4:e2b` | Descargar el modelo sin iniciar una conversación. |
+| `ollama run gemma4:e2b` | Ejecutar el modelo e iniciar una conversación. |
+| `ollama list` | Ver los modelos descargados; `ollama ls` es equivalente. |
+| `ollama show gemma4:e2b` | Consultar información del modelo. |
+| `ollama ps` | Ver qué modelos están cargados en memoria. |
+| `ollama stop gemma4:e2b` | Detener el modelo y liberarlo de memoria, conservando su descarga. |
+| `ollama rm gemma4:e2b` | Eliminar la copia local del modelo. Para volver a usarlo habrá que descargarlo. |
+| `ollama --help` | Consultar los comandos disponibles. |
+
+La forma general de borrar es **`ollama rm <modelo>`**: sustituye `<modelo>` por el nombre y la etiqueta que aparecen en `ollama list`, sin escribir los signos `< >`. [Referencias: guía de comandos](https://docs.ollama.com/cli) y [definición de comandos y alias](https://github.com/ollama/ollama/blob/main/cmd/cmd.go).
+
+**Disco y memoria son recursos distintos:** descargar guarda archivos; ejecutar carga datos en RAM o en la memoria de la tarjeta gráfica, llamada **VRAM**. El espacio de descarga no equivale a toda la memoria necesaria. La variante, la precisión numérica y el contexto utilizado influyen en el consumo. La **cuantización** reduce la precisión de los números para ahorrar recursos; una etiqueta como `Q4_K_M` identifica un formato de cuantización de la familia de 4 bits. [Referencias: requisitos de memoria](https://ai.google.dev/gemma/docs/core) y [ficha de E2B](https://ollama.com/library/gemma4:e2b).
+
+### Ajustar la generación durante una conversación
+
+Dentro de una conversación iniciada con `ollama run`, estos comandos cambian los ajustes de la sesión:
+
+```text
+/show parameters
+/set parameter temperature 0.2
+/set parameter top_k 20
+/set parameter top_p 0.9
+```
+
+`/show parameters` permite consultar la configuración. En el ejemplo se favorecen elecciones más concentradas y se aplican los filtros de [temperatura, top-k y top-p](#temperatura-top-k-y-top-p). Los valores son didácticos; conviene partir de los recomendados para cada modelo y comparar resultados cambiando un ajuste cada vez.
+
+Otros ajustes útiles son:
+
+| Ajuste | Qué controla |
+| --- | --- |
+| **num_ctx** | Configura cuántos tokens se pueden usar como contexto, dentro de los límites del modelo y del equipo. |
+| **num_predict** | Limita la cantidad de tokens generados. |
+| **seed** | Fija el punto de partida del generador pseudoaleatorio para facilitar la reproducción bajo las mismas condiciones. |
+
+Por ejemplo, `/set parameter num_predict 150` limita la generación a 150 tokens. Estos ajustes controlan la ejecución y no modifican los pesos aprendidos. [Referencias: parámetros de Ollama](https://docs.ollama.com/modelfile#valid-parameters-and-values) y [ajustes de sesión](https://github.com/ollama/ollama/blob/main/cmd/interactive.go).
+
+### Modelfile: guardar una personalización reutilizable
+
+Un **Modelfile** es un archivo de texto que indica qué modelo utilizar, con qué ajustes y con qué instrucciones iniciales. Es como guardar una receta para no volver a configurar todo en cada sesión.
+
+Ejemplo: un asistente que explica conceptos de biblioteca. Guarda lo siguiente como **`Modelfile-biblioteca.txt`**, en texto plano y con codificación UTF-8:
+
+```text
+# Modelo de partida.
+FROM gemma4:e2b
+
+# Ajustes de generación para este ejemplo.
+PARAMETER temperature 0.2
+PARAMETER top_k 20
+PARAMETER top_p 0.9
+
+# Instrucciones que orientan las respuestas.
+SYSTEM """
+Eres un guía de biblioteca para personas que empiezan a leer.
+Responde en español con palabras sencillas y un ejemplo cotidiano.
+Usa un máximo de tres párrafos breves.
+Si desconoces un dato, indícalo en lugar de inventarlo.
+"""
+```
+
+**`FROM`** elige el modelo base; **`PARAMETER`** fija ajustes de ejecución; **`SYSTEM`** contiene instrucciones de comportamiento. El símbolo `#` introduce comentarios. Estas instrucciones orientan al modelo, pero no garantizan que siempre las cumpla. [Referencia: formato de Modelfile](https://docs.ollama.com/modelfile).
+
+Desde la carpeta donde guardaste el archivo, ejecuta en PowerShell:
+
+```powershell
+ollama create guia-biblioteca -f .\Modelfile-biblioteca.txt
+ollama show guia-biblioteca
+ollama show --parameters guia-biblioteca
+ollama show --modelfile guia-biblioteca
+ollama run guia-biblioteca
+```
+
+El primer comando registra **`guia-biblioteca`** como modelo personalizado; **`-f`** indica el archivo de configuración. Los comandos `show` consultan la ficha, los ajustes y el Modelfile resultante. `run` abre la conversación. Crear esta configuración reutiliza los pesos del modelo base; no realiza un entrenamiento.
+
+Prueba con: **«¿Qué diferencia hay entre una novela y un cuento?»**. Si editas el Modelfile, vuelve a ejecutar `ollama create` para actualizar el modelo personalizado. [Referencia: creación y uso](https://docs.ollama.com/modelfile#examples).
+
+También puedes enviar una pregunta guardada en un archivo. En **PowerShell**, utiliza:
+
+```powershell
+Get-Content -Raw -Encoding UTF8 .\pregunta-biblioteca.txt | ollama run guia-biblioteca
+```
+
+`Get-Content` lee el texto y la barra `|` lo envía al modelo. El archivo de pregunta aporta contenido para esa ejecución; el Modelfile guarda la configuración reutilizable.
+
+**Archivos de ejemplo:** [Modelfile-biblioteca.txt](ejemplos/Modelfile-biblioteca.txt) y [pregunta-biblioteca.txt](ejemplos/pregunta-biblioteca.txt). Si usas estos archivos desde la raíz del repositorio, antepone `ejemplos\` a sus rutas en los comandos.
+
+**Comprueba lo aprendido**
+
+1. ¿Qué diferencia hay entre `ollama stop gemma4:e2b` y `ollama rm gemma4:e2b`?
+2. ¿Qué instrucción del Modelfile elige el modelo base y cuál define su comportamiento?
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. `stop` libera el modelo de memoria y conserva su descarga; `rm` elimina la copia local.
+2. `FROM` elige el modelo base y `SYSTEM` aporta las instrucciones de comportamiento.
+
+</details>
+
+## 14. Prompts: cómo pedir lo que necesitas
+
+Un **prompt** es el mensaje con el que planteas una petición al modelo: puede incluir instrucciones, una pregunta, datos o un texto que continuar. Forma parte del [contexto utilizado durante la inferencia](#10-inferencia-del-mensaje-a-la-respuesta).
+
+El **prompt engineering**, o diseño de prompts, consiste en redactar, probar y ajustar esas peticiones para obtener respuestas adecuadas al objetivo. Se parece a encargar un trabajo a alguien que acaba de llegar: necesita saber qué quieres y qué información debe tener en cuenta.
+
+### Cinco elementos que pueden ayudar
+
+| Elemento | Qué aclara |
+| --- | --- |
+| **Rol** | Desde qué enfoque debe responder: profesor, editor, guía… Orienta el tono y la perspectiva. |
+| **Contexto** | Para quién es la respuesta, qué situación hay y qué información relevante aportas. |
+| **Tarea** | Qué debe hacer exactamente: explicar, resumir, comparar, redactar… |
+| **Reglas o restricciones** | Qué límites debe respetar: extensión, idioma, nivel de detalle o fuentes permitidas. |
+| **Formato de salida** | Cómo quieres recibir el resultado: párrafos, lista, tabla, código… |
+
+**No son requisitos obligatorios ni una lista cerrada.** Para una petición sencilla puede bastar «Traduce “Hasta mañana” al inglés». Añade estructura cuando ayude a reducir ambigüedades. También puedes aportar ejemplos de respuestas deseadas, documentos de referencia o criterios para valorar el resultado. [Referencias: claridad, contexto y ejemplos](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) y [diseño de prompts](https://ai.google.dev/gemini-api/docs/prompting-strategies).
+
+### Ejemplo con los cinco elementos
+
+```text
+Rol: Actúa como profesor de ciencias de primaria.
+
+Contexto: La explicación es para una niña de 10 años que está
+aprendiendo de dónde viene la lluvia.
+
+Tarea: Explica cómo funciona el ciclo del agua.
+
+Reglas: Usa palabras sencillas y un máximo de 120 palabras.
+Relaciona la explicación con un charco que se seca al sol.
+
+Formato de salida: Un título breve y una lista de tres pasos.
+```
+
+Las etiquetas hacen visibles las partes; también podrías escribir la petición en un párrafo. Lo importante es que las indicaciones sean claras y compatibles entre sí.
+
+**Cómo mejorarlo:** lee la respuesta y comprueba si cumple el objetivo. Si usa vocabulario demasiado difícil, concreta el ajuste: «Explica “evaporación” con una frase cotidiana». El proceso es **iterativo**: probar, revisar y ajustar. Un prompt más largo solo ayuda si aporta información útil. [Referencia: diseño y revisión de prompts](https://ai.google.dev/gemini-api/docs/prompting-strategies).
+
+**Comprueba lo aprendido**
+
+1. En el ejemplo, ¿qué parte indica a quién va dirigida la explicación y cuál establece cómo presentarla?
+2. Mejora «Háblame de las plantas» añadiendo una tarea concreta y un formato de salida.
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. El **contexto** indica la edad y la situación de la destinataria; el **formato de salida** pide un título y tres pasos.
+2. Una opción: «Explica qué necesitan las plantas para crecer en una lista de cuatro puntos».
 
 </details>
