@@ -300,13 +300,13 @@ También hay modelos que representan frases o documentos mediante un vector. Per
 
 **Comprueba lo aprendido**
 
-1. En el vector de violín, ¿qué representa p2 y cuánto vale?
+1. ¿Qué diferencia hay entre el ID de un token y su embedding?
 2. ¿Un mismo token debe tener el mismo estado contextual en cualquier frase?
 
 <details>
 <summary>Ver respuestas</summary>
 
-1. Es la coordenada en la segunda dimensión y vale **0,20**.
+1. El ID identifica una entrada; el embedding es la lista de valores que utiliza la red.
 2. No: la representación contextual depende de la información que lo acompaña.
 
 </details>
@@ -366,6 +366,10 @@ Tiene dos compuertas:
 En la analogía, trabajas con **una sola nota**: preparas una revisión usando más o menos información anterior y después decides cuánto cambiar. A igual tamaño de estado y de entrada, una GRU estándar tiene menos parámetros que una LSTM estándar. La elección depende de la tarea. [Referencia: compuertas de una GRU](https://d2l.ai/chapter_recurrent-modern/gru.html).
 
 **Aplicado a la frase de la lámpara:** estas redes pueden aprender a conservar información del objeto principal mientras pasan los detalles de la tienda y los precios, y utilizarla al procesar «encendida». Las compuertas facilitan esa continuidad y el aprendizaje de relaciones lejanas; no garantizan recordar todos los detalles ni eliminan todos los problemas del gradiente.
+
+![Diagramas de flujo de LSTM y GRU: LSTM combina memoria conservada e información nueva y regula su salida; GRU combina el estado anterior con una propuesta de actualización](assets/lstm-gru-memoria.png)
+
+El diagrama muestra **un paso de lectura**. Sigue las flechas de arriba abajo: **c** representa el estado de celda y **h**, el estado oculto que se transmite al paso siguiente.
 
 La pregunta siguiente es: **¿y si el modelo pudiera consultar directamente una parte anterior, en vez de depender solo de una nota que se transmite paso a paso?**
 

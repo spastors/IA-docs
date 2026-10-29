@@ -1,0 +1,55 @@
+Modo: herramienta integrada ImageGen.
+Destino: assets/lstm-gru-memoria.png
+
+PROMPT INICIAL
+
+Use case: scientific-educational.
+Asset type: ONE original Spanish educational PNG infographic for beginner AI study notes. A flowchart comparison of LSTM and GRU in the SAME image.
+Style: clean friendly textbook flow diagram, white/off-white background, dark navy lettering, large readable Spanish text, rounded boxes, clearly routed arrows, generous whitespace. Use a blue/green palette for LSTM on the left and purple/orange for GRU on the right. Balanced landscape composition around 2600 x 1800 or larger. Small notebook and sticky-note icons support the memory analogy. No copied screenshots, no watermark.
+Title exactly: "LSTM y GRU: cómo se actualiza la memoria"
+Subtitle: "Dos maneras de conservar información útil al leer una secuencia."
+Two side-by-side panels, BOTH fully visible:
+
+LEFT PANEL heading: "LSTM"
+Subheading: "Una memoria de celda y un estado oculto"
+This is a pedagogical flowchart for ONE time step, not a full mathematical circuit.
+At top, a small neutral context strip: "Entrada actual + estado oculto anterior". A note in this strip: "Ayudan a calcular las tres compuertas."
+Below that, TWO parallel branches:
+Branch A: box "Memoria anterior" with small notebook icon and variable "c anterior". Arrow down to green gate box "OLVIDO" with caption "Cuánto de la memoria conservar".
+Branch B: box "Información nueva candidata" with caption "Se propone a partir de la entrada y el estado oculto anterior". Arrow down to blue gate box "ENTRADA" with caption "Cuánta información nueva añadir".
+Both gate boxes must send arrows into one merging box labelled "Memoria actual" with variable "c actual" and notebook icon. Under this box in smaller text: "Combina lo conservado y lo añadido".
+From "Memoria actual", split TWO outgoing paths:
+Path 1: a clear arrow to a side tag "c actual → siguiente paso". This bypasses the output gate. The cell memory continues independently.
+Path 2: an arrow downward into orange gate box labelled "Transformación + SALIDA" with caption "Cuánto de la memoria transformada mostrar". Arrow downward to final blue box "Estado oculto actual" and variable "h actual". Show a final small tag "h actual → siguiente paso".
+Make the distinction unmistakable: LSTM has TWO carried states, c and h. Never label h as a guaranteed generated word or final answer. The output gate does NOT overwrite c.
+
+RIGHT PANEL heading: "GRU"
+Subheading: "Un único estado que se actualiza"
+At top TWO separate inputs: "Entrada actual" and "Estado anterior" with variable "h anterior" and a sticky-note icon. Route the previous state along TWO branches:
+Branch A descends through purple gate box "REINICIO" with caption "Cuánto del pasado usar al preparar la propuesta". The current input also enters the next box "Propuesta de estado nuevo". The RESET path and current input combine to form this candidate.
+Branch B is a bypass route carrying "h anterior" directly toward the final combining step, avoiding the reset gate and candidate box. This is crucial: the previous state can be preserved directly.
+Below the candidate box, orange combining gate box "ACTUALIZACIÓN" with caption "Cuánto conservar del estado anterior y cuánto tomar de la propuesta".
+Arrows from BOTH "Propuesta de estado nuevo" and the bypass of "h anterior" must enter this update box. Arrow downward to a final purple box "Estado actual" and variable "h actual". A small tag "h actual → siguiente paso".
+A tiny explanatory caption near the top inputs: "La entrada y el estado anterior controlan las compuertas." No separate c state for GRU. The reset gate changes the candidate computation, NOT an unconditional erasure of the carried state.
+
+Full-width bottom analogy strip, in two columns aligned to panels:
+Left: "LSTM: una libreta para conservar datos y un resumen para usarlos ahora."
+Right: "GRU: una sola nota que se revisa conservando parte de lo anterior."
+Final full-width note: "Esquema simplificado. Las compuertas son cálculos aprendidos; los estados son vectores, no frases escritas."
+
+Accuracy requirements:
+- Exactly ONE image containing BOTH diagrams.
+- LSTM exactly THREE named gates: OLVIDO, ENTRADA, SALIDA. GRU exactly TWO: REINICIO, ACTUALIZACIÓN.
+- Arrows must be easy to follow, no crossings through boxes or text. Previous GRU h has a direct route to update; current LSTM c has a direct carry route bypassing output gate.
+- The upper input/context strips are explanatory; do not add incorrect c previous → all gates links. Gate controls arise from x current and h previous.
+- Do not show arbitrary 0/1 values, gradients, formulas, extra gates, unlimited memory or hard-coded decisions.
+- All terms in Spanish with correct accents. Keep prose short and fit it in boxes with readable type.
+
+AJUSTE DE FLECHAS
+
+Edit this existing LSTM/GRU educational flowchart with ONE precise correction. Preserve all text, colors, boxes, state symbols, GRU arrows, notebook illustrations, layout, and all other arrows.
+In the LEFT LSTM panel there is currently a blue branching arrow from the context strip "Entrada actual + estado oculto anterior" DOWN INTO "Memoria anterior c_(t-1)". This connection is incorrect: c_(t-1) arrives from the previous time step, it is not computed from the current input. Remove ONLY the left downward branch and its arrowhead that enters "Memoria anterior".
+Keep the valid blue connection from that context strip to "Información nueva candidata": redraw the remaining connector as a clean single elbow line going from the strip toward the candidate box, with NO branch toward "Memoria anterior".
+Add a small label directly ABOVE "Memoria anterior" in available white space: "Viene del paso anterior". It must not overlap any box, line, or text. If tight, omit this added label rather than overlap.
+All other left-panel connections remain: previous memory -> OLVIDO -> current memory, candidate -> ENTRADA -> current memory, current memory -> c actual next-step carry, current memory -> Transformación + SALIDA -> current h -> next-step carry.
+The resulting diagram must clearly show c previous as a separate incoming memory. Do not add any new computational links. Keep the right GRU panel and all bottom captions exactly unchanged.
