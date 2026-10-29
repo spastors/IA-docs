@@ -1,0 +1,17 @@
+Modo: edición con la herramienta integrada ImageGen.
+Imagen de origen: assets/embeddings-coordenadas.png
+Destino: assets/embeddings-coordenadas-iconos.png
+
+Use case: scientific-educational image edit.
+Image 1 is the EDIT TARGET: an accurate, mathematically plotted Spanish three-dimensional embeddings diagram. Preserve the complete scientific plot unchanged: exact point positions, three arrows, origin, grid, axis ticks, axis labels, leader lines, all existing coordinates, distances (0,073 and 1,364), cosine similarities (0,997 and −0,046), all right-hand cards, title and color palette.
+Make only the following additions:
+1. Add three small cheerful, clean illustrated icons to the left-hand chart, one violin, one acoustic guitar, one bicycle. Put each icon immediately beside its corresponding existing word label (Violín, Guitarra, Bicicleta), in available whitespace. Make the violin visually recognizable by its bow and violin body; make the guitar clearly distinct by its larger guitar body; bicycle has two wheels. Keep the numerical points, plot arrows and coordinate axes fully visible. Do not move or substitute the actual data points with icons: the colored dots stay exactly where they are. Icons about the same visual height as 1.5–2 lines of existing chart text. Use blue, green and purple accent details matching respective labels.
+2. Extend the canvas downward as needed, keeping the original chart's geometry and size fixed, to create a spacious educational footer. Replace the original bottom two footer lines with the following clear Spanish explanation, using large legible navy text and three colored mini-cards, one per vector component:
+Heading exactly: "Cómo leer [p1; p2; p3]"
+Card 1: "p1" and "Coordenada en la dimensión 1"
+Card 2: "p2" and "Coordenada en la dimensión 2"
+Card 3: "p3" and "Coordenada en la dimensión 3"
+Example line exactly: "Violín: p1 = 0,80; p2 = 0,20; p3 = 0,10."
+Concluding line exactly: "Son coordenadas aprendidas; cada posición no tiene un significado semántico fijo."
+Small final note exactly: "Ejemplo inventado y reducido a tres dimensiones."
+Constraints: icons and footer are the only changes. Preserve mathematical data and spatial layout exactly. Do not label axes with music, animals, size, transport or other invented semantic categories. Do not invent new coordinates. In this notation p1, p2 and p3 are numeric components, not token IDs or probabilities. Keep typography readable, professional and friendly, no overlaps and no watermarks.

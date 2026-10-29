@@ -6,14 +6,14 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 
 ## Índice
 
-1. [El mapa: IA, PLN y LLM](#1-el-mapa-ia-pln-y-llm)
-2. [Tokens: dividir el texto en piezas](#2-tokens-dividir-el-texto-en-piezas)
-3. [Contexto: la información disponible](#3-contexto-la-información-disponible)
-4. [N-gramas: predecir contando](#4-n-gramas-predecir-contando)
-5. [Redes neuronales: aprender ajustando](#5-redes-neuronales-aprender-ajustando)
-6. [Embeddings: representar con números](#6-embeddings-representar-con-números)
-7. [RNN: leer con una memoria que se actualiza](#7-rnn-leer-con-una-memoria-que-se-actualiza)
-8. [Transformer: relacionar partes del texto](#8-transformer-relacionar-partes-del-texto)
+1. [El mapa: IA, PLN y LLM](#1-el-mapa-ia-pln-y-llm) ✅
+2. [Tokens: dividir el texto en piezas](#2-tokens-dividir-el-texto-en-piezas) ✅
+3. [Contexto: la información disponible](#3-contexto-la-información-disponible) ✅
+4. [N-gramas: predecir contando](#4-n-gramas-predecir-contando) ✅
+5. [Redes neuronales: aprender ajustando](#5-redes-neuronales-aprender-ajustando) ✅
+6. [Embeddings: representar con números](#6-embeddings-representar-con-números) ✅
+7. [RNN: leer con una memoria que se actualiza](#7-rnn-leer-con-una-memoria-que-se-actualiza) ✅
+8. [Transformer: relacionar partes del texto](#8-transformer-relacionar-partes-del-texto) ✅
 9. [Entrenamiento: de la arquitectura al LLM](#9-entrenamiento-de-la-arquitectura-al-llm)
 10. [Inferencia: del mensaje a la respuesta](#10-inferencia-del-mensaje-a-la-respuesta)
 11. [Historia: cómo llegamos hasta aquí](#11-historia-cómo-llegamos-hasta-aquí)
@@ -259,7 +259,9 @@ Al conectar muchas neuronas aparecen **capas**: entrada, capas intermedias u **o
 
 </details>
 
-## 6. Embeddings: representar con números
+<a id="6-embeddings-representar-con-números"></a>
+
+## 6. Embeddings: representar con números ✅
 
 Los IDs de tokens identifican piezas de texto. Para procesarlas, una red usa **embeddings**: listas de números llamadas **vectores**. Cada número es una componente o **dimensión** del vector.
 
@@ -273,9 +275,13 @@ Ejemplo inventado, suponiendo un token por palabra:
 | guitarra | 572 | [0,75; 0,25; 0,12] |
 | bicicleta | 901 | [−0,30; 0,60; 0,80] |
 
-La **tabla de embeddings** guarda una fila por token. Su ID permite recuperar esa fila. Los valores se aprenden; cada columna no equivale necesariamente a una propiedad comprensible como «tamaño» o «ser vivo». [Referencias: espacio de embeddings](https://developers.google.com/machine-learning/crash-course/embeddings/embedding-space) y [consulta por ID](https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html).
+La **tabla de embeddings** guarda una fila por token. Su ID permite recuperar esa fila y sus valores aprendidos. [Referencias: espacio de embeddings](https://developers.google.com/machine-learning/crash-course/embeddings/embedding-space) y [consulta por ID](https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html).
 
-**Imagen mental:** un mapa con «violín» y «guitarra» próximos y «bicicleta» más alejada. Los ejes representan coordenadas aprendidas, sin etiquetas semánticas fijas. Es una simplificación de un espacio que puede tener muchas más dimensiones.
+![Diagrama de coordenadas con iconos de violín, guitarra y bicicleta y una guía para leer las tres componentes del vector](assets/embeddings-coordenadas-iconos.png)
+
+**Cómo leer `[p1; p2; p3]`:** cada posición contiene una coordenada. **p1** corresponde a la dimensión 1; **p2**, a la dimensión 2; y **p3**, a la dimensión 3. En el vector de violín, p1 = **0,80**, p2 = **0,20** y p3 = **0,10**.
+
+Cada eje representa una de esas dimensiones. Las flechas parten del origen y llegan a las coordenadas de cada token: **violín y guitarra quedan próximos**, mientras **bicicleta queda más alejada**. Las componentes son características aprendidas; no tienen por qué corresponder a propiedades fijas como «música» o «tamaño». Los valores del dibujo son inventados.
 
 Para comparar vectores se puede medir su distancia o la semejanza de su dirección. La **similitud del coseno** compara direcciones y va de −1 a 1. Con los números de la tabla, violín–guitarra da aproximadamente **0,997**; violín–bicicleta, **−0,046**. Son valores ilustrativos, no probabilidades. Solo deben compararse vectores de espacios compatibles. [Referencia: medidas de similitud](https://www.sbert.net/docs/sentence_transformer/usage/semantic_textual_similarity.html).
 
@@ -294,18 +300,20 @@ También hay modelos que representan frases o documentos mediante un vector. Per
 
 **Comprueba lo aprendido**
 
-1. ¿Qué diferencia hay entre el ID de un token y su embedding?
+1. En el vector de violín, ¿qué representa p2 y cuánto vale?
 2. ¿Un mismo token debe tener el mismo estado contextual en cualquier frase?
 
 <details>
 <summary>Ver respuestas</summary>
 
-1. El ID identifica una entrada; el embedding es la lista de valores que utiliza la red.
+1. Es la coordenada en la segunda dimensión y vale **0,20**.
 2. No: la representación contextual depende de la información que lo acompaña.
 
 </details>
 
-## 7. RNN: leer con una memoria que se actualiza
+<a id="7-rnn-leer-con-una-memoria-que-se-actualiza"></a>
+
+## 7. RNN: leer con una memoria que se actualiza ✅
 
 Una **red neuronal recurrente (RNN, Recurrent Neural Network)** procesa datos **secuenciales**, en los que el orden importa: una frase, una grabación o las mediciones de un sensor.
 
@@ -330,24 +338,53 @@ La **memoria de corto plazo** describe la tendencia de una RNN básica a conserv
 
 Durante el entrenamiento, la señal que indica qué ajustar también puede debilitarse al recorrer muchos pasos: es el **desvanecimiento del gradiente**, parecido a un mensaje que llega cada vez más tenue. En otros casos crece demasiado: son los **gradientes explosivos**. No existe una cantidad universal de palabras tras la que la red olvide. [Referencia: aprendizaje a través del tiempo](https://d2l.ai/chapter_recurrent-neural-networks/bptt.html).
 
-**LSTM** (*Long Short-Term Memory*) y **GRU** (*Gated Recurrent Unit*) son variantes que incorporan **compuertas**: controles aprendidos que regulan qué conservar, actualizar o descartar. Ayudan a mantener información durante más pasos, aunque siguen teniendo límites. [Referencias: LSTM](https://d2l.ai/chapter_recurrent-modern/lstm.html) y [GRU](https://d2l.ai/chapter_recurrent-modern/gru.html).
+### LSTM: conservar una memoria y elegir qué utilizar
+
+Una **LSTM** (*Long Short-Term Memory*) es una variante de RNN diseñada para conservar información relevante durante más pasos. Imagina leer con una **libreta de datos que quieres mantener** y un **resumen de lo que necesitas ahora**.
+
+La libreta representa el **estado de celda**, una memoria interna adicional. El resumen representa el **estado oculto**, que se transmite al paso siguiente y puede utilizarse para producir una salida.
+
+Tres **compuertas** regulan el proceso:
+
+| Compuerta | Qué controla | En la analogía |
+| --- | --- | --- |
+| **Olvido** | Cuánto de la memoria anterior se conserva. | Mantener o atenuar apuntes anteriores. |
+| **Entrada** | Cuánta información nueva se incorpora. | Añadir datos a la libreta. |
+| **Salida** | Cuánto del estado de celda transformado pasa al estado oculto. | Elegir qué usar en el resumen actual. |
+
+Son cálculos aprendidos, con valores entre 0 y 1 para regular cada componente. La libreta es una analogía: la red guarda vectores, no frases escritas. [Referencia: memoria y compuertas de una LSTM](https://d2l.ai/chapter_recurrent-modern/lstm.html).
+
+### GRU: actualizar una única memoria
+
+Una **GRU** (*Gated Recurrent Unit*) también regula qué recordar, con una estructura más sencilla: utiliza **un estado interno**, sin separar una memoria de celda y un estado oculto.
+
+Tiene dos compuertas:
+
+- **Reinicio:** regula cuánto del estado anterior se utiliza al preparar información nueva candidata.
+- **Actualización:** combina esa propuesta con el estado anterior y determina cuánto se conserva y cuánto se sustituye.
+
+En la analogía, trabajas con **una sola nota**: preparas una revisión usando más o menos información anterior y después decides cuánto cambiar. A igual tamaño de estado y de entrada, una GRU estándar tiene menos parámetros que una LSTM estándar. La elección depende de la tarea. [Referencia: compuertas de una GRU](https://d2l.ai/chapter_recurrent-modern/gru.html).
+
+**Aplicado a la frase de la lámpara:** estas redes pueden aprender a conservar información del objeto principal mientras pasan los detalles de la tienda y los precios, y utilizarla al procesar «encendida». Las compuertas facilitan esa continuidad y el aprendizaje de relaciones lejanas; no garantizan recordar todos los detalles ni eliminan todos los problemas del gradiente.
 
 La pregunta siguiente es: **¿y si el modelo pudiera consultar directamente una parte anterior, en vez de depender solo de una nota que se transmite paso a paso?**
 
 **Comprueba lo aprendido**
 
 1. ¿Qué dos elementos combina una RNN en cada paso?
-2. ¿Por qué puede costarle relacionar «lámpara» con «encendida»?
+2. En la analogía, ¿qué diferencia hay entre la memoria de una LSTM y la de una GRU?
 
 <details>
 <summary>Ver respuestas</summary>
 
 1. La entrada actual y el estado anterior.
-2. La información debe mantenerse a través de muchos pasos; puede debilitarse y resultar difícil aprender a conservarla.
+2. La LSTM tiene una libreta —estado de celda— y un resumen actual —estado oculto—; la GRU actualiza un único estado interno.
 
 </details>
 
-## 8. Transformer: relacionar partes del texto
+<a id="8-transformer-relacionar-partes-del-texto"></a>
+
+## 8. Transformer: relacionar partes del texto ✅
 
 Un **Transformer** es una forma de organizar una red neuronal, es decir, una **arquitectura**. Su mecanismo principal, la **atención**, combina información de distintas posiciones del texto.
 
@@ -375,20 +412,32 @@ flowchart LR
 
 La información de posición permite distinguir el orden: «Ana llamó a Luis» y «Luis llamó a Ana» contienen las mismas palabras, pero cuentan cosas diferentes. Las transformaciones se repiten en varias capas. [Referencias: Transformer original](https://arxiv.org/abs/1706.03762) y [posición](https://d2l.ai/chapter_attention-mechanisms-and-transformers/self-attention-and-positional-encoding.html).
 
+### Para qué se usa la máscara causal
+
+Un modelo que aprende a **continuar texto** debe practicar con la información que tendría al escribirlo. Si pudiera consultar la palabra que debe predecir, podría copiar la respuesta en vez de aprender a anticiparla.
+
+La **máscara causal** establece qué posiciones puede consultar la atención: **cada posición ve su propio token y los anteriores; las posiciones posteriores quedan bloqueadas**. Es como tapar la parte final de una frase al practicar cómo completarla.
+
+Por ejemplo, para predecir «llaves» en «Marta guardó las llaves», se utiliza «Marta guardó las», sin consultar «llaves» ni lo que venga después. Aquí tratamos cada palabra como un token para simplificar.
+
+Esta regla distingue las siguientes variantes: los **decodificadores causales** la utilizan para aprender a generar continuaciones; un codificador como BERT puede consultar ambos lados del texto. [Referencias: máscara del Transformer](https://arxiv.org/abs/1706.03762) y [contexto bidireccional de BERT](https://arxiv.org/abs/1810.04805).
+
 | Variante | Función habitual | Ejemplo |
 | --- | --- | --- |
 | **Codificador** | Construye representaciones consultando ambos lados del texto. | BERT. |
 | **Decodificador causal** | Predice la continuación usando las posiciones permitidas hasta ese momento. | GPT. |
 | **Codificador y decodificador** | Uno representa la entrada; el otro genera una salida consultándola. | Transformer original, aplicado a traducción. |
 
-La **máscara causal** impide mirar tokens futuros durante la predicción. En el entrenamiento pueden calcularse muchas posiciones en paralelo con esa restricción; al generar de forma **autorregresiva**, se añade un token cada vez y se usa para continuar. [Referencias: Transformer](https://arxiv.org/abs/1706.03762), [BERT](https://arxiv.org/abs/1810.04805) y [GPT](https://openai.com/index/language-unsupervised/).
+En el entrenamiento pueden calcularse muchas posiciones en paralelo manteniendo esa restricción. Al generar de forma **autorregresiva**, se añade un token cada vez y se usa para continuar, como veremos en [inferencia](#10-inferencia-del-mensaje-a-la-respuesta). [Referencias: Transformer](https://arxiv.org/abs/1706.03762) y [GPT](https://openai.com/index/language-unsupervised/).
 
 <details>
 <summary>Ampliación visual: leer el diagrama del Transformer original</summary>
 
 ![Transformer original: codificador verde, decodificador rojo, atención azul y transformaciones internas en violeta y naranja](assets/transformer-codificador-decodificador.png)
 
-Se lee **de abajo arriba**. El codificador recibe «La ventana sigue abierta». El decodificador, con «The window» ya disponible, puede proponer «is» como continuación.
+El diagrama se lee **de abajo arriba** y representa una **traducción del español al inglés**. El codificador recibe «La ventana sigue abierta». El decodificador construye «The window is open»: cuando ya tiene «The window» —«La ventana»—, puede proponer «is» —«está»— como continuación. El inglés aparece como idioma de salida de este ejemplo.
+
+Algunas etiquetas conservan sus nombres técnicos en inglés para reconocerlas en el diagrama:
 
 | Bloque | Qué hace |
 | --- | --- |
@@ -396,8 +445,8 @@ Se lee **de abajo arriba**. El codificador recibe «La ventana sigue abierta». 
 | **Autoatención multicabeza** | Combina información dentro de una secuencia. |
 | **Atención enmascarada** | Excluye posiciones futuras. |
 | **Atención cruzada** | Permite que el decodificador consulte la salida del codificador. |
-| **Feed Forward** | Transforma cada posición con una pequeña red neuronal. |
-| **Add & Norm** | Suma una entrada con su transformación y normaliza valores para facilitar el procesamiento. |
+| **Red de avance hacia delante (Feed Forward)** | Transforma cada posición con una pequeña red neuronal. |
+| **Suma y normalización (Add & Norm)** | Suma una entrada con su transformación y normaliza valores para facilitar el procesamiento. |
 | **Proyección lineal y softmax** | Calcula puntuaciones para los tokens del vocabulario y las convierte en probabilidades que suman 1. |
 
 Los bloques se repiten: seis capas en cada pila del modelo base original, con parámetros propios por capa. En su entrenamiento, la salida objetivo se desplaza una posición para que cada paso aprenda a predecir el siguiente token.
@@ -415,6 +464,8 @@ En autoatención proceden de la misma secuencia; en atención cruzada, Q viene d
 </details>
 
 La atención facilita conectar posiciones lejanas, pero el modelo sigue limitado por su [ventana de contexto](#3-contexto-la-información-disponible) y por su capacidad para aprovecharla.
+
+**Vídeo de apoyo:** [¿Qué es un Transformer? La red neuronal que lo cambió todo](https://youtu.be/aL-EmKuB078).
 
 **Comprueba lo aprendido**
 
@@ -643,7 +694,7 @@ La historia combina varias líneas de trabajo. Esta cronología reúne los hitos
 | **1997** | Hochreiter y Schmidhuber presentan **LSTM** para facilitar el aprendizaje de relaciones lejanas en secuencias. [Artículo](https://doi.org/10.1162/neco.1997.9.8.1735). |
 | **2003** | Bengio y colaboradores presentan un modelo neuronal de lenguaje que aprende representaciones de palabras junto con probabilidades. [Artículo](https://jmlr.csail.mit.edu/papers/v3/bengio03a). |
 | **Década de 2010** | Se expanden los modelos neuronales de lenguaje. En 2014 aparecen **GRU** y un influyente trabajo de atención para traducción, presentado en 2015. [GRU](https://arxiv.org/abs/1406.1078) y [atención](https://arxiv.org/abs/1409.0473). |
-| **2017** | Vaswani y colaboradores presentan **Attention Is All You Need** en NIPS 2017. Introducen el Transformer, que permite relacionar posiciones mediante atención y facilita el entrenamiento en paralelo. [Artículo](https://arxiv.org/abs/1706.03762). |
+| **2017** | Vaswani y colaboradores presentan **Attention Is All You Need** en NIPS 2017. Introducen el Transformer, que permite relacionar posiciones mediante atención y facilita el entrenamiento en paralelo. 🔝 [Artículo](https://arxiv.org/abs/1706.03762). |
 | **2018** | Aparecen **GPT**, después llamado GPT-1, y **BERT**: dos formas de aprovechar el Transformer para tareas de lenguaje. BERT se publica en congreso en 2019. [GPT](https://openai.com/index/language-unsupervised/) y [BERT](https://arxiv.org/abs/1810.04805). |
 | **2019–2020** | GPT-2 amplía la generación de texto; GPT-3 lleva la escala hasta **175.000 millones de parámetros** en su versión mayor. Esa cifra cuenta valores aprendidos, no tokens de contexto. [GPT-2](https://openai.com/index/better-language-models/) y [GPT-3](https://arxiv.org/abs/2005.14165). |
 | **2022** | Se investiga la combinación de lenguaje y acciones con **ReAct**. El **30 de noviembre** se lanza ChatGPT, inicialmente basado en GPT-3.5. [ReAct](https://arxiv.org/abs/2210.03629) y [ChatGPT](https://openai.com/index/chatgpt/). |
