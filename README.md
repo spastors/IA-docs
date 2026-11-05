@@ -16,10 +16,11 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 8. [Transformer: relacionar partes del texto](#8-transformer-relacionar-partes-del-texto) ✅
 9. [Entrenamiento: de la arquitectura al LLM](#9-entrenamiento-de-la-arquitectura-al-llm)
 10. [Inferencia: del mensaje a la respuesta](#10-inferencia-del-mensaje-a-la-respuesta)
-11. [Historia: cómo llegamos hasta aquí](#11-historia-cómo-llegamos-hasta-aquí)
-12. [Práctica opcional en C#: aprender los puntos de un juego](#12-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
-13. [Práctica con Ollama: ejecutar modelos locales](#13-práctica-con-ollama-ejecutar-modelos-locales)
-14. [Prompts: cómo pedir lo que necesitas](#14-prompts-cómo-pedir-lo-que-necesitas)
+11. [RAG: buscar información antes de responder](#11-rag-buscar-información-antes-de-responder)
+12. [Historia: cómo llegamos hasta aquí](#12-historia-cómo-llegamos-hasta-aquí)
+13. [Práctica opcional en C#: aprender los puntos de un juego](#13-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
+14. [Práctica con Ollama: ejecutar modelos locales](#14-práctica-con-ollama-ejecutar-modelos-locales)
+15. [Prompts: cómo pedir lo que necesitas](#15-prompts-cómo-pedir-lo-que-necesitas)
 
 <a id="1-el-mapa-ia-pln-y-llm"></a>
 
@@ -138,22 +139,51 @@ El **contexto** es la información que el modelo puede consultar para interpreta
 
 Las palabras que rodean a «vela» ayudan a distinguir sus usos. El significado depende de la situación, como cuando una persona necesita escuchar una conversación completa para entender una frase.
 
-En un asistente, el contexto puede incluir instrucciones, mensajes anteriores, documentos aportados y texto ya generado. La **ventana de contexto** limita cuántos tokens puede manejar en ese contexto.
+### Ventana de contexto: qué cabe y cuánto espacio hay
 
-Imagínala como una mesa de trabajo: caben ciertos documentos y notas. Una mesa mayor permite tener más material a mano, pero no garantiza que se aproveche cada detalle. [Referencia: Stanford, ventana de contexto](https://hai.stanford.edu/ai-definitions/what-is-a-context-window).
+La **ventana de contexto** limita cuántos tokens puede manejar el modelo para trabajar con una petición y continuarla. Imagínala como una **mesa de trabajo**: el límite es el tamaño de la mesa; el contexto ocupado son los documentos que tienes encima.
 
-Conviene distinguir **entrenamiento**, que ajusta lo aprendido por el modelo, de **inferencia**, que consiste en usarlo. Es parecido a estudiar antes de un examen frente a resolverlo con apuntes sobre la mesa. Aportar un documento durante una conversación normalmente cambia el contexto, sin actualizar por ello los parámetros del modelo. Veremos esos parámetros en [redes neuronales](#5-redes-neuronales-aprender-ajustando). [Referencia: GPT-3](https://arxiv.org/abs/2005.14165).
+**Los ejemplos de este apartado se centran en un chat con un LLM.** La misma idea se aplica a una petición individual, como enviar un documento para resumirlo.
+
+| Qué ocupa espacio | Ejemplo en un chat |
+| --- | --- |
+| **Instrucciones** | El rol y las reglas de la aplicación. |
+| **Historial seleccionado** | Tus preguntas anteriores y las respuestas del asistente. |
+| **Petición actual** | La pregunta que acabas de escribir. |
+| **Información aportada** | Documentos, imágenes o datos que la aplicación incluye. |
+| **Respuesta en curso** | Los tokens que el modelo va generando. |
+
+Importa lo que la aplicación **envía realmente al modelo**: un mensaje antiguo puede seguir visible en pantalla aunque ya no se incluya íntegramente. También ocupan espacio las marcas que separan mensajes y sus roles. [Referencias: componentes del contexto](https://platform.claude.com/docs/en/build-with-claude/context-windows) y [formato de una conversación](https://huggingface.co/docs/transformers/chat_templating).
+
+Cada modelo tiene un límite y la aplicación puede trabajar con uno menor. **Una ventana mayor permite aportar más información, pero no garantiza que se aproveche cada detalle.**
+
+### ¿Se acumula durante un chat?
+
+**Sí, si la aplicación conserva y vuelve a aportar el historial:**
+
+```text
+Turno 1: instrucciones + pregunta 1 → respuesta 1
+Turno 2: instrucciones + pregunta 1 + respuesta 1 + pregunta 2 → respuesta 2
+```
+
+Crece el **contenido ocupado**, no la capacidad de la ventana. Cuando falta espacio, la aplicación debe gestionar qué mantiene: puede seleccionar mensajes o sustituirlos por resúmenes. El contexto disponible puede ser distinto del historial completo que ves. [Referencia: contexto e historial](https://platform.claude.com/docs/en/build-with-claude/context-windows).
+
+Por eso conviene aportar información **relevante para la petición actual**. Más adelante veremos cómo gestionar el espacio durante la generación. Primero estudiaremos cómo distintos modelos utilizan la información anterior para predecir lo que viene.
 
 **Comprueba lo aprendido**
 
 1. ¿Qué palabras permiten distinguir los dos sentidos de «vela»?
 2. ¿Adjuntar un documento a una conversación equivale por sí solo a entrenar el modelo?
+3. Una condición sigue visible al principio del chat, pero el modelo deja de respetarla. ¿Por qué verla en pantalla no asegura que siga disponible?
+4. ¿Añadir veinte mensajes aumenta la capacidad de la ventana? Explica qué cambia realmente.
 
 <details>
 <summary>Ver respuestas</summary>
 
 1. «Barco» y «desplegar» orientan hacia navegación; «apagón» y «encendimos», hacia iluminación.
 2. No: normalmente aporta contexto para esa interacción.
+3. La aplicación puede haber recortado o resumido ese mensaje antes de preparar la solicitud actual. Incluso si lo incluye, el modelo puede utilizarlo mal.
+4. La capacidad no aumenta automáticamente: crece el contenido que se intenta incluir. La aplicación puede necesitar seleccionar o resumirlo.
 
 </details>
 
@@ -621,6 +651,26 @@ Marta guardó las llaves en el cajón. → [fin]
 
 En cada fila se calculan nuevas probabilidades con el contexto ampliado. **[fin]** representa aquí una señal especial de terminación; el punto por sí solo no obliga a detenerse. Elegir una continuación probable tampoco garantiza que lo escrito sea cierto.
 
+### Gestionar el contexto durante la inferencia
+
+La [ventana de contexto](#3-contexto-la-información-disponible) determina qué información hay disponible. Al generar una respuesta, también hay que considerar **cuánto espacio queda para continuar**.
+
+**Entrada y salida:** el límite de contexto y el de salida son distintos. Cuando comparten presupuesto, las instrucciones, el historial y los datos de entrada deben dejar margen para los tokens nuevos:
+
+```text
+Ventana de ejemplo: 8.192 tokens
+Entrada:           6.500 tokens
+Margen restante:   1.692 tokens para la generación
+```
+
+El reparto y los límites concretos dependen del modelo y del servicio. Por ejemplo, con una entrada de 7.500 tokens solo quedarían **692**, por lo que generar 1.000 no cabría en esa ventana compartida. Habría que reducir la entrada, acortar la salida o ampliar la configuración si es compatible. [Referencia: presupuestos de entrada y salida](https://ai.google.dev/gemini-api/docs/long-context).
+
+**Razonamiento:** algunos modelos generan tokens intermedios antes de la respuesta final. Pueden consumir presupuesto aunque la interfaz no los muestre. Que se conserven en turnos posteriores depende del modelo y la aplicación. Los cálculos internos de las capas, por sí solos, no equivalen a nuevos tokens añadidos al historial. [Referencia: contexto con razonamiento](https://platform.claude.com/docs/en/build-with-claude/context-windows#the-context-window-with-thinking).
+
+**Al alcanzar el límite:** el sistema puede recortar historial, resumirlo, detener la generación o rechazar la solicitud. Puede priorizar lo reciente y mantener ciertas instrucciones. La «amnesia» describe aquí la pérdida de acceso a información del contexto, no un borrado de los pesos aprendidos. Si «el presupuesto es de 300 €» quedó fuera del contexto enviado, el modelo puede dejar de respetarlo. [Referencias: límites y gestión del contexto](https://platform.claude.com/docs/en/build-with-claude/context-windows#context-window-overflow-behavior) y [selección y resumen](https://ai.google.dev/gemini-api/docs/long-context).
+
+**Cuándo abrir una sesión nueva:** es útil al cambiar de tarea o acumular intentos descartados e instrucciones contradictorias. Para continuar el mismo proyecto, lleva un resumen con **objetivo, restricciones, decisiones vigentes y datos imprescindibles**. Las instrucciones propias de la aplicación pueden seguir presentes en la sesión nueva.
+
 ### Temperatura, top-k y top-p
 
 Estos ajustes controlan cómo se elige el **siguiente token** durante la inferencia. Piensa en una lista de sugerencias ordenadas de más a menos probables:
@@ -648,7 +698,7 @@ En la imagen se estudia cada filtro por separado. **Los ajustes pueden combinars
 
 Estos controles regulan la variedad, no verifican los hechos. Una **alucinación** es información inventada presentada como cierta; puede aparecer incluso con ajustes muy restrictivos. Más variedad no equivale automáticamente a mayor creatividad útil ni implica necesariamente más errores.
 
-Los [ejemplos de Ollama](#ajustar-la-generación-durante-una-conversación) muestran cómo aplicar estos valores y guardarlos en una configuración.
+En la [parte práctica](#ajustar-la-generación-durante-una-conversación) aplicaremos estos valores y aprenderemos a guardarlos en una configuración reutilizable.
 
 <details>
 <summary>Ampliación: cómo se evita recalcular todo</summary>
@@ -683,7 +733,70 @@ Repetir exactamente una respuesta de un LLM depende también del modelo, el cont
 
 </details>
 
-## 11. Historia: cómo llegamos hasta aquí
+## 11. RAG: buscar información antes de responder
+
+Durante la inferencia, el modelo utiliza lo aprendido y el contexto que recibe. Sin una conexión externa, no puede consultar por su cuenta el nuevo manual de una empresa ni sus documentos internos. Además, puede producir **alucinaciones**: afirmaciones que parecen convincentes, pero son falsas o no están respaldadas.
+
+La **generación aumentada por recuperación**, o **RAG** (*Retrieval-Augmented Generation*), combina una búsqueda de información con la generación de una respuesta. La aplicación recupera contenido relevante y lo incorpora al contexto del LLM. Es como responder una consulta con el manual abierto por las páginas adecuadas. [Referencia: artículo de RAG](https://arxiv.org/abs/2005.11401).
+
+### El flujo: preparar primero, consultar después
+
+Este esquema muestra una versión habitual basada en búsqueda por embeddings. **La preparación se realiza al incorporar o actualizar documentos; la consulta, con cada pregunta.**
+
+![Arquitectura RAG: ingesta de documentos, división en chunks, embeddings y base vectorial; consulta, búsqueda de similitud y generación de la respuesta](assets/rag-arquitectura-metalcode.png)
+
+Fuente: [MetalCode — Programación IA](https://courses.metalcode.io/courses/take/programaci%C3%B3n-ia).
+
+**Cómo leer la imagen:** la parte superior prepara e indexa los documentos; la inferior recupera chunks relevantes para cada consulta. El bloque verde representa al LLM y su respuesta. La pregunta y los textos recuperados forman parte del contexto: los fragmentos aportan datos y la pregunta indica qué hay que responder.
+
+**En la preparación:**
+
+- La **división en chunks** (*chunking*) consiste en separar el documento en fragmentos con sentido, como párrafos o secciones. Facilita localizar la explicación concreta sin enviar el manual entero. Conviene conservar títulos y evitar separar una regla de su excepción.
+- Se calculan [embeddings](#6-embeddings-representar-con-números) para representar los fragmentos y se crea un **índice**, una estructura que permite buscarlos. También se guardan su texto y datos de origen, como documento, página y fecha. [Referencia: división de documentos](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents).
+
+**Durante la consulta:**
+
+- La pregunta se representa con el mismo modelo de embeddings, o uno compatible. Se compara con los vectores del índice para localizar contenido relacionado por significado.
+- La aplicación selecciona los fragmentos útiles y envía **su texto**, junto con la pregunta y las instrucciones, al LLM. El modelo redacta una respuesta que puede citar esas fuentes.
+
+Un **índice vectorial** permite buscar por cercanía entre vectores. Es una opción frecuente, pero RAG también puede usar palabras clave o combinar ambos métodos en una **búsqueda híbrida**. [Referencia: recuperación y generación](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview).
+
+### Ejemplo: consultar un manual de préstamo
+
+Supongamos que el manual de un centro cultural contiene estas normas ficticias:
+
+> **Manual, sección 4:** los instrumentos se prestan durante siete días. Se permite una renovación si nadie los ha reservado.
+
+La pregunta es **«¿Puedo quedarme la guitarra una semana más?»**. La búsqueda puede relacionarla con «renovación» y «préstamo», aunque use palabras diferentes. Recupera esa sección y el LLM responde:
+
+> Puedes solicitar una renovación si nadie ha reservado la guitarra. **Fuente: Manual, sección 4.**
+
+El documento aporta la norma; el LLM la expresa como respuesta a la pregunta. Si se pregunta por una penalización que no aparece en los fragmentos recuperados, la respuesta adecuada es indicar que falta esa información.
+
+### Qué aporta y qué límites tiene
+
+RAG permite consultar fuentes recientes o internas **sin tener que reentrenar el LLM**. Para reflejar un cambio en el manual, se actualiza la fuente y su índice. El contenido recuperado ocupa parte de la [ventana de contexto](#3-contexto-la-información-disponible); los pesos del modelo no cambian por recibirlo.
+
+La calidad depende tanto de **encontrar la información adecuada** como de **interpretarla correctamente**. Puede haber documentos desactualizados, fragmentos incompletos o errores en la respuesta. Una cita facilita comprobar lo dicho; por sí sola no demuestra que sea correcto. [Referencia: arquitectura y calidad de recuperación](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview).
+
+### Práctica en Python: documentos, embeddings y Chroma
+
+El proyecto independiente [rag-python](rag-python/README.md) lleva este flujo a código comentado con LangChain y Ollama. Incluye carga de un TXT, división en fragmentos, embeddings, una base Chroma en memoria y otra persistente mediante `CHROMA_DIR`, además de consultas con los pasajes recuperados visibles.
+
+**Comprueba lo aprendido**
+
+1. El manual cambia el plazo de siete a diez días, pero el chat sigue diciendo siete. ¿Qué revisarías antes de plantear reentrenar el modelo?
+2. El sistema encuentra el párrafo correcto, pero responde que siempre se puede renovar y omite la condición de las reservas. ¿El fallo está en la recuperación o en la generación?
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. Que la fuente y el índice estén actualizados, y qué fragmento se está enviando al LLM. Puede seguir recuperándose la versión antigua; no hace falta reentrenar para aportar la norma nueva.
+2. En la generación o interpretación del contexto: la información necesaria sí fue recuperada, pero la respuesta dejó fuera una condición importante.
+
+</details>
+
+## 12. Historia: cómo llegamos hasta aquí
 
 La historia combina varias líneas de trabajo. Esta cronología reúne los hitos de los conceptos anteriores:
 
@@ -701,6 +814,7 @@ La historia combina varias líneas de trabajo. Esta cronología reúne los hitos
 | **2017** | Vaswani y colaboradores presentan **Attention Is All You Need** en NIPS 2017. Introducen el Transformer, que permite relacionar posiciones mediante atención y facilita el entrenamiento en paralelo. 🔝 [Artículo](https://arxiv.org/abs/1706.03762). |
 | **2018** | Aparecen **GPT**, después llamado GPT-1, y **BERT**: dos formas de aprovechar el Transformer para tareas de lenguaje. BERT se publica en congreso en 2019. [GPT](https://openai.com/index/language-unsupervised/) y [BERT](https://arxiv.org/abs/1810.04805). |
 | **2019–2020** | GPT-2 amplía la generación de texto; GPT-3 lleva la escala hasta **175.000 millones de parámetros** en su versión mayor. Esa cifra cuenta valores aprendidos, no tokens de contexto. [GPT-2](https://openai.com/index/better-language-models/) y [GPT-3](https://arxiv.org/abs/2005.14165). |
+| **2020** | Patrick Lewis y colaboradores presentan **RAG**, combinando recuperación de pasajes y generación de lenguaje. [Artículo](https://arxiv.org/abs/2005.11401). |
 | **2022** | Se investiga la combinación de lenguaje y acciones con **ReAct**. El **30 de noviembre** se lanza ChatGPT, inicialmente basado en GPT-3.5. [ReAct](https://arxiv.org/abs/2210.03629) y [ChatGPT](https://openai.com/index/chatgpt/). |
 | **2023–2025** | GPT-4 documenta entrada de texto e imágenes. Se extienden las aplicaciones multimodales y el uso de herramientas en los años siguientes. [GPT-4](https://arxiv.org/abs/2303.08774) y [balance de 2025](https://developers.openai.com/blog/openai-for-developers-2025). |
 
@@ -717,7 +831,7 @@ La historia combina varias líneas de trabajo. Esta cronología reúne los hitos
 
 </details>
 
-## 12. Práctica opcional en C#: aprender los puntos de un juego
+## 13. Práctica opcional en C#: aprender los puntos de un juego
 
 Esta práctica requiere nociones de C#. Una sola neurona lineal aprende los puntos de una partida a partir de **monedas** y **gemas**.
 
@@ -826,7 +940,7 @@ Cada época calcula el error sobre todos los ejemplos antes de actualizar parám
 
 </details>
 
-## 13. Práctica con Ollama: ejecutar modelos locales
+## 14. Práctica con Ollama: ejecutar modelos locales
 
 **Ollama** es una herramienta para descargar y ejecutar modelos de IA en tu ordenador. Permite practicar la [inferencia](#10-inferencia-del-mensaje-a-la-respuesta) con un modelo ya entrenado.
 
@@ -933,6 +1047,24 @@ Otros ajustes útiles son:
 
 Por ejemplo, `/set parameter num_predict 150` limita la generación a 150 tokens. Estos ajustes controlan la ejecución y no modifican los pesos aprendidos. [Referencias: parámetros de Ollama](https://docs.ollama.com/modelfile#valid-parameters-and-values) y [ajustes de sesión](https://github.com/ollama/ollama/blob/main/cmd/interactive.go).
 
+### Configurar la ventana de contexto en Ollama
+
+**`num_ctx` configura el tamaño de contexto que se utilizará**, dentro de la capacidad del modelo y los recursos disponibles. Para cambiarlo en una conversación de `ollama run`:
+
+```text
+/set parameter num_ctx 8192
+```
+
+El ejemplo configura **8.192 tokens**, no palabras. La ficha de Gemma 4 E2B declara una capacidad máxima de **128K tokens**: el máximo del modelo y el contexto configurado para una ejecución pueden ser distintos. Aumentar `num_ctx` exige memoria y no convierte por sí solo al modelo en uno entrenado para contextos mayores. [Referencias: ficha de E2B](https://ollama.com/library/gemma4:e2b) y [ajuste de contexto en la terminal](https://docs.ollama.com/faq#how-can-i-specify-the-context-window-size).
+
+Una ventana pequeña deja menos espacio para instrucciones, historial y generación. La explicación de [gestión del contexto durante la inferencia](#gestionar-el-contexto-durante-la-inferencia) muestra qué puede ocurrir al llenarla y cuándo conviene empezar otra conversación.
+
+Para comprobar el contexto asignado a los modelos cargados, ejecuta **`ollama ps`** en PowerShell y consulta la columna **`CONTEXT`**. Un valor mayor suele requerir más RAM o VRAM; las opciones predeterminadas dependen de la versión y la configuración. [Referencia: contexto y memoria](https://docs.ollama.com/context-length).
+
+Para empezar de nuevo dentro del chat de la terminal, **`/clear`** limpia el historial conversacional de la sesión. Esto no entrena ni elimina el modelo. Conserva aparte un resumen de lo que quieras volver a aportar. [Referencia: comandos del chat](https://github.com/ollama/ollama/blob/main/cmd/interactive.go).
+
+También puedes guardar `num_ctx` en el Modelfile del siguiente ejemplo, para reutilizar ese ajuste.
+
 ### Modelfile: guardar una personalización reutilizable
 
 Un **Modelfile** es un archivo de texto que indica qué modelo utilizar, con qué ajustes y con qué instrucciones iniciales. Es como guardar una receta para no volver a configurar todo en cada sesión.
@@ -947,6 +1079,7 @@ FROM gemma4:e2b
 PARAMETER temperature 0.2
 PARAMETER top_k 20
 PARAMETER top_p 0.9
+PARAMETER num_ctx 8192
 
 # Instrucciones que orientan las respuestas.
 SYSTEM """
@@ -983,6 +1116,10 @@ Get-Content -Raw -Encoding UTF8 .\pregunta-biblioteca.txt | ollama run guia-bibl
 
 **Archivos de ejemplo:** [Modelfile-biblioteca.txt](ejemplos/Modelfile-biblioteca.txt) y [pregunta-biblioteca.txt](ejemplos/pregunta-biblioteca.txt). Si usas estos archivos desde la raíz del repositorio, antepone `ejemplos\` a sus rutas en los comandos.
 
+### Proyecto práctico: chat mediante API REST
+
+Además de usar la terminal, una aplicación puede enviar mensajes a Ollama mediante su **API REST**, una interfaz para intercambiar datos a través de peticiones web. El proyecto [chat-ollama](chat-ollama/README.md) muestra cómo hacerlo con HTML, CSS y JavaScript. Su guía explica la conexión, el envío del historial y el manejo de errores.
+
 **Comprueba lo aprendido**
 
 1. ¿Qué diferencia hay entre `ollama stop gemma4:e2b` y `ollama rm gemma4:e2b`?
@@ -996,7 +1133,7 @@ Get-Content -Raw -Encoding UTF8 .\pregunta-biblioteca.txt | ollama run guia-bibl
 
 </details>
 
-## 14. Prompts: cómo pedir lo que necesitas
+## 15. Prompts: cómo pedir lo que necesitas
 
 Un **prompt** es el mensaje con el que planteas una petición al modelo: puede incluir instrucciones, una pregunta, datos o un texto que continuar. Forma parte del [contexto utilizado durante la inferencia](#10-inferencia-del-mensaje-a-la-respuesta).
 

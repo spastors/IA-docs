@@ -5,6 +5,7 @@ FROM gemma4:e2b
 PARAMETER temperature 0.2
 PARAMETER top_k 20
 PARAMETER top_p 0.9
+PARAMETER num_ctx 8192
 
 # Instrucciones que orientan las respuestas.
 SYSTEM """
