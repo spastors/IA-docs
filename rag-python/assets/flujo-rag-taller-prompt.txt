@@ -1,0 +1,39 @@
+Modo: herramienta integrada image_gen. Generación de una imagen nueva.
+
+Use case: infographic-diagram.
+Asset type: infografía didáctica en español para un README sobre RAG con Python.
+Primary request: Crear una imagen original, elegante, muy legible y pedagógica que explique el flujo completo de RAG con dos fases claramente diferenciadas. Inspiración conceptual: diagramas de arquitectura con tarjetas, iconos y flechas. No reproducir ninguna imagen existente.
+Style: fondo blanco, ilustración plana editorial, iconos amables de documentos, tijeras, coordenadas, base de datos, lupa, bicicleta y bocadillos. Tipografía sans serif grande, texto español exacto, pocos textos por tarjeta, mucho espacio. Formato apaisado de alta resolución, aproximadamente 3:2. No logotipos, marcas de agua ni decoraciones distractoras.
+Title: "RAG: buscar en un manual para responder"
+Subtitle: "Ejemplo: las normas de un taller de bicicletas"
+
+Composición: una banda azul superior para fase 1, una banda violeta central para búsqueda en fase 2 y una continuación verde inferior para generación de fase 2. Flechas unidireccionales claras. Numerar cada paso por fase: A1 a A5 y B1 a B7. Cada tarjeta debe incluir el título breve grande y debajo la etiqueta de código pequeña cuando se indique. No incluir nada más que estos textos.
+
+Banda superior azul: encabezado "FASE 1 · PREPARAR LOS DOCUMENTOS" y debajo pequeño "Al incorporar o actualizar el manual".
+Cinco tarjetas de izquierda a derecha, conectadas:
+A1 "Manual en TXT" con icono documento y bicicleta.
+A2 "Cargar el texto" / "TextLoader".
+A3 "Dividir en fragmentos" / "RecursiveCharacterTextSplitter" (puede partirse tipográficamente en dos líneas sin perder letras).
+A4 "Calcular embeddings" / "nomic-embed-text".
+A5 "Guardar en Chroma" / "Vectores + texto + origen", icono base de datos.
+Debajo de A5 nota breve "En memoria o en disco".
+IMPORTANTE: no dibujar ninguna flecha de esta fase directamente hacia el LLM.
+
+Banda central violeta: encabezado "FASE 2 · BUSCAR Y RESPONDER" y debajo pequeño "Con cada pregunta".
+Cuatro tarjetas de izquierda a derecha:
+B1 "Pregunta" / "¿Puedo llevarme las herramientas?"
+B2 "Embedding de la pregunta" / "El mismo modelo: nomic-embed-text"
+B3 "Buscar en Chroma" / "Hasta 3 fragmentos relacionados"
+B4 "Recuperar el texto" / "Las herramientas se usan dentro del taller."
+Conectar B1 -> B2 -> B3 -> B4.
+Desde A5 debe bajar una flecha azul discontinua hasta B3, etiquetada "Consultar el índice", para dejar claro que se busca en los datos preparados.
+Desde B4 baja una flecha a B5 de la banda inferior.
+
+Banda inferior verde, tres tarjetas de izquierda a derecha con flechas:
+B5 "Preparar el contexto" / "Instrucciones + pregunta + textos recuperados"
+B6 "LLM: redactar" / "llama3.2:3b mediante Ollama"
+B7 "Respuesta y referencias" / "No. Las herramientas se utilizan dentro del taller. [1]"
+Añadir una flecha violeta discreta desde B1 hasta B5 etiquetada "Pregunta original", por un recorrido limpio que no atraviese tarjetas. B4 debe conectarse a B5, nunca directamente a B6 saltándose la reunión del contexto.
+Iconos: B5 un pequeño paquete de documentos, B6 un símbolo simple de red de nodos, B7 bocadillo con una referencia [1]. Mantener texto y referencias legibles.
+Pie de imagen: "Los embeddings ayudan a buscar. El LLM recibe texto para responder."
+Accuracy constraints: la búsqueda devuelve texto, no respuestas definitivas; la base guarda vectores junto con textos y metadatos; la pregunta y los documentos usan modelos de embeddings compatibles; no se reentrena el LLM en este flujo; los nombres de los componentes son los indicados. Ninguna flecha sugiere entrenamiento o transferencia directa del archivo completo al LLM.

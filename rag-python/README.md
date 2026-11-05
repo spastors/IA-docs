@@ -87,25 +87,17 @@ Si cambias el modelo de embeddings o sus prefijos en el código, utiliza otro `C
 
 ## 4. Entender el código paso a paso
 
-Las funciones comentadas están en [rag.py](rag.py). Los dos programas de ejemplo las llaman en el orden necesario:
+Las funciones comentadas están en [rag.py](rag.py). El recorrido tiene dos fases: **organizar la información para encontrarla** y **utilizar lo encontrado para responder**.
 
-```mermaid
-flowchart TD
-    A["TextLoader: leer el TXT UTF-8"] --> B["RecursiveCharacterTextSplitter: dividir"]
-    B --> C["OllamaEmbeddings: calcular vectores"]
-    C --> D["Chroma: guardar vectores, texto y metadatos"]
-    E["Pregunta"] --> F["as_retriever().invoke: buscar fragmentos"]
-    D --> F
-    F --> G["Plantilla: pregunta + texto recuperado"]
-    G --> H["ChatOllama: generar respuesta"]
-    H --> I["Mostrar respuesta y pasajes recuperados"]
-    classDef datos fill:#e3f2fd,stroke:#1565c0,color:#102a43;
-    classDef consulta fill:#e8f5e9,stroke:#2e7d32,color:#16351d;
-    class A,B,C,D datos;
-    class E,F,G,H,I consulta;
-```
+![Flujo RAG en dos fases: preparar un manual de taller con TextLoader, fragmentos, embeddings y Chroma; después representar una pregunta, recuperar textos y enviarlos junto con ella a un LLM para redactar la respuesta](assets/flujo-rag-taller.png)
 
-### Cargar y dividir
+**Cómo leer el esquema:** la franja azul prepara el manual; la violeta busca información y la verde construye la respuesta. La conexión entre Chroma y la búsqueda significa «consultar lo que ya guardamos». La pregunta original también llega al LLM: los fragmentos aportan información, pero la pregunta determina qué hay que contestar.
+
+### Fase 1: dejar el manual preparado
+
+Esta fase se ejecuta al indexar un documento. Se parece a organizar un manual en fichas que luego podemos localizar por su contenido. En el ejemplo temporal se repite en cada ejecución; en el persistente se reutiliza lo guardado.
+
+#### Cargar y dividir
 
 `TextLoader(..., encoding="utf-8").load()` produce objetos `Document`: `page_content` contiene el texto y `metadata`, datos como el origen. Este cargador lee **texto plano**, no el contenido de un PDF binario. Se utiliza `TextLoader` desde `langchain_community.document_loaders`. [Referencia: cargadores de documentos](https://docs.langchain.com/oss/python/integrations/document_loaders).
 
@@ -119,19 +111,29 @@ flowchart TD
 
 `split_documents` conserva los metadatos; el módulo añade un número de fragmento para localizarlo. [Referencia: división recursiva](https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter).
 
-### Calcular embeddings y almacenarlos
+#### Calcular embeddings y almacenarlos
 
 `EmbeddingsNomic` adapta `OllamaEmbeddings`, importado desde `langchain_ollama`. Añade `search_document:` al calcular vectores de documentos y `search_query:` al calcular el de una pregunta, siguiendo las instrucciones de Nomic. Estos prefijos orientan el cálculo; el texto original almacenado conserva su contenido. [Referencias: integración con Ollama](https://docs.langchain.com/oss/python/integrations/embeddings/ollama) y [prefijos de Nomic](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5#task-instruction-prefixes).
 
 `Chroma`, importado desde `langchain_chroma`, conecta LangChain con `chromadb`. `add_documents` calcula los embeddings mediante la función configurada y guarda vectores, texto, metadatos e IDs. [Referencia: integración con Chroma](https://docs.langchain.com/oss/python/integrations/vectorstores/chroma).
 
-### Recuperar y generar
+### Fase 2: buscar y responder a una pregunta
+
+Imagina que preguntas **«¿Puedo llevarme las herramientas?»**. El recorrido continúa así:
+
+1. **Representar la pregunta.** Se calcula su embedding para compararla con los fragmentos preparados. Aunque no repita literalmente una frase del manual, puede encontrar contenido relacionado.
+2. **Recuperar información.** La búsqueda localiza, entre otros posibles pasajes, la norma que dice que las herramientas se utilizan dentro del taller y no se pueden llevar a casa. Se recupera ese **texto**, con su referencia de origen.
+3. **Preparar el contexto y redactar.** Se reúnen las instrucciones, la pregunta original y los textos recuperados. El LLM utiliza ese conjunto para producir una respuesta como «No. Las herramientas deben utilizarse dentro del taller [1]».
+
+El modelo de embeddings ayuda a **encontrar**; el modelo generativo se encarga de **redactar**. Son dos tareas diferentes, por eso el proyecto utiliza dos modelos.
 
 `base.as_retriever(search_kwargs={"k": 3})` crea un buscador que recupera hasta tres fragmentos relacionados. **Este `k` cuenta fragmentos recuperados; no es el `top_k` que filtra posibles tokens al generar.**
 
 El texto recuperado se incorpora a una plantilla con la pregunta. La expresión `plantilla | modelo | StrOutputParser()` conecta tres pasos de LangChain: preparar mensajes, consultar el LLM y obtener el texto de salida. `cadena.invoke(...)` ejecuta ese recorrido. [Referencia: ChatOllama](https://docs.langchain.com/oss/python/integrations/chat/ollama).
 
 Las instrucciones piden responder solo con los pasajes y citar sus números. El programa imprime aparte los fragmentos realmente recuperados: **una búsqueda puede devolver contenido cercano aunque no contenga la respuesta**, y el LLM puede equivocarse al utilizarlo. Las citas generadas deben contrastarse con esos textos.
+
+Por ejemplo, si preguntas cuánto cuesta comprar una bicicleta nueva, el manual no aporta ese precio. El sistema debería indicar que falta la información, aunque la búsqueda haya devuelto textos sobre bicicletas. Recuperar un fragmento relacionado no basta para justificar cualquier respuesta.
 
 ## 5. Archivos y configuración
 
