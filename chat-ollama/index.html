@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="description" content="Un chat sencillo conectado a la API REST de Ollama." />
+    <title>Ollama · Chat</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="icon-chat" viewBox="0 0 24 24">
+        <path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-10a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8Z" />
+        <path d="M7 10h8M7 14h5" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 5v14" /></symbol>
+      <symbol id="icon-link" viewBox="0 0 24 24">
+        <path d="m10 13 4-4M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 1 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" />
+      </symbol>
+    </svg>
+
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Conexión y conversación">
+        <a class="brand" href="./" aria-label="Ollama chat, inicio">
+          <span class="brand-mark"><svg class="icon"><use href="#icon-chat" /></svg></span>
+          <span>ollama<span class="brand-subtitle">un espacio para conversar</span></span>
+        </a>
+
+        <button id="new-chat" class="button new-chat" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#icon-plus" /></svg>
+          Nueva conversación
+        </button>
+
+        <details id="connection-settings" class="connection-settings" open>
+          <summary>Conexión <span aria-hidden="true">⌄</span></summary>
+          <form id="connection-form" class="connection-form">
+            <p class="settings-description">Conecta tu servidor y elige un modelo disponible.</p>
+            <label for="server-url">Dirección de Ollama</label>
+            <input id="server-url" name="server" type="url" value="http://localhost:11434"
+              placeholder="http://localhost:11434" required spellcheck="false" autocomplete="off" />
+            <button id="connect" class="button connect-button" type="submit">
+              <svg class="icon" aria-hidden="true"><use href="#icon-link" /></svg>
+              <span id="connect-label">Conectar</span>
+            </button>
+            <label for="model">Modelo</label>
+            <select id="model" name="model" disabled>
+              <option value="">Conecta para ver tus modelos</option>
+            </select>
+          </form>
+        </details>
+
+        <div class="sidebar-note">
+          <span class="note-eyebrow">TU ESPACIO DE TRABAJO</span>
+          <p>Pregunta, explora una idea o encuentra otra forma de entender algo.</p>
+          <span class="session-note">Puedes consultar los mensajes anteriores desplazándote hacia arriba. Los intercambios completados acompañan tu siguiente pregunta. El historial se borra al recargar.</span>
+        </div>
+        <a class="readme-link" href="./README.md">Guía de inicio <span aria-hidden="true">↗</span></a>
+      </aside>
+
+      <main class="chat-panel">
+        <header class="chat-header">
+          <div>
+            <p class="eyebrow">CHAT CON OLLAMA</p>
+            <h1 id="active-model">Una conversación nueva</h1>
+          </div>
+          <span id="connection-status" class="status-badge" data-state="idle" role="status">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="status-label">Sin conexión</span>
+          </span>
+        </header>
+
+        <section id="messages" class="messages" role="log" aria-label="Mensajes de la conversación"
+          aria-live="polite" aria-relevant="additions text">
+          <div id="empty-state" class="empty-state">
+            <span class="welcome-mark" aria-hidden="true">✳</span>
+            <p class="eyebrow">ESPACIO PARA TUS IDEAS</p>
+            <h2>Todo empieza con<br />una buena pregunta.</h2>
+            <p class="welcome-description">Conecta Ollama y escribe lo que tienes en mente.<br />Tus preguntas y sus respuestas quedarán aquí para continuar la conversación.</p>
+            <div class="suggestions" aria-label="Ideas para comenzar">
+              <button type="button" class="suggestion" data-prompt="Explícame cómo funciona una brújula con un ejemplo sencillo.">
+                <span aria-hidden="true">◎</span> Entender algo nuevo <span aria-hidden="true">↗</span>
+              </button>
+              <button type="button" class="suggestion" data-prompt="Ayúdame a organizar mis ideas para preparar una presentación. Primero pregúntame cuál es el tema.">
+                <span aria-hidden="true">▦</span> Dar forma a una idea <span aria-hidden="true">↗</span>
+              </button>
+              <button type="button" class="suggestion" data-prompt="Propón tres comienzos diferentes para un cuento ambientado en una estación de tren abandonada.">
+                <span aria-hidden="true">✧</span> Crear algo diferente <span aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div class="composer-area">
+          <form id="chat-form" class="composer">
+            <label for="prompt" class="sr-only">Tu mensaje</label>
+            <textarea id="prompt" name="prompt" rows="2" maxlength="20000"
+              placeholder="Escribe tu mensaje…" aria-describedby="composer-help"></textarea>
+            <div class="composer-bottom">
+              <span id="activity" class="activity" role="status">Conecta Ollama para empezar.</span>
+              <button id="stop" class="button stop-button" type="button" hidden>Detener</button>
+              <button id="send" class="button send-button" type="submit" disabled>
+                <span>Enviar</span>
+                <svg class="icon" aria-hidden="true"><use href="#icon-arrow" /></svg>
+              </button>
+            </div>
+          </form>
+          <p id="composer-help" class="composer-help">Enter para enviar · Mayús + Enter para otra línea.
+            <span>Las respuestas pueden contener errores.</span>
+          </p>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
