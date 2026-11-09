@@ -26,6 +26,8 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 18. [Skills: procedimientos reutilizables con datos de entrada](#18-skills-procedimientos-reutilizables-con-datos-de-entrada)
 19. [MCP: conectar la IA con datos y herramientas](#19-mcp-conectar-la-ia-con-datos-y-herramientas)
 
+[Bibliografía](#bibliografía)
+
 <a id="1-el-mapa-ia-pln-y-llm"></a>
 
 ## 1. El mapa: IA, PLN y LLM ✅
@@ -504,6 +506,8 @@ En autoatención proceden de la misma secuencia; en atención cruzada, Q viene d
 La atención facilita conectar posiciones lejanas, pero el modelo sigue limitado por su [ventana de contexto](#3-contexto-la-información-disponible) y por su capacidad para aprovecharla.
 
 **Vídeo de apoyo:** [¿Qué es un Transformer? La red neuronal que lo cambió todo](https://youtu.be/aL-EmKuB078).
+
+**Continuación en vídeo:** [¿Por qué estas REDES NEURONALES son tan POTENTES? 🤔 | TRANSFORMERS Parte 2](https://youtu.be/xi94v_jl26U).
 
 **Comprueba lo aprendido**
 
@@ -2151,3 +2155,7 @@ En **Club de Barrio** puedes cambiar el dorsal de una jugadora desde un formular
 2. No. Las instrucciones describen el procedimiento, pero hace falta acceso real a los datos mediante una herramienta, un servidor MCP u otra integración disponible.
 
 </details>
+
+## Bibliografía
+
+- **MetalCode — Programación IA.** Curso utilizado como base para documentar la teoría de estos apuntes. [Acceder al curso](https://courses.metalcode.io/courses/take/programaci%C3%B3n-ia).
