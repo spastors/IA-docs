@@ -21,6 +21,10 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 13. [Práctica opcional en C#: aprender los puntos de un juego](#13-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
 14. [Práctica con Ollama: ejecutar modelos locales](#14-práctica-con-ollama-ejecutar-modelos-locales)
 15. [Prompts: cómo pedir lo que necesitas](#15-prompts-cómo-pedir-lo-que-necesitas)
+16. [Vibe coding: crear software con lenguaje natural](#16-vibe-coding-crear-software-con-lenguaje-natural)
+17. [Instrucciones para agentes: /init y AGENTS.md](#17-instrucciones-para-agentes-init-y-agentsmd)
+18. [Skills: procedimientos reutilizables con datos de entrada](#18-skills-procedimientos-reutilizables-con-datos-de-entrada)
+19. [MCP: conectar la IA con datos y herramientas](#19-mcp-conectar-la-ia-con-datos-y-herramientas)
 
 <a id="1-el-mapa-ia-pln-y-llm"></a>
 
@@ -1171,15 +1175,979 @@ Las etiquetas hacen visibles las partes; también podrías escribir la petición
 
 **Cómo mejorarlo:** lee la respuesta y comprueba si cumple el objetivo. Si usa vocabulario demasiado difícil, concreta el ajuste: «Explica “evaporación” con una frase cotidiana». El proceso es **iterativo**: probar, revisar y ajustar. Un prompt más largo solo ayuda si aporta información útil. [Referencia: diseño y revisión de prompts](https://ai.google.dev/gemini-api/docs/prompting-strategies).
 
+### Prompt preciso para crear una aplicación
+
+Una petición como «crea una biblioteca personal» deja muchas decisiones abiertas. Un **prompt preciso** concreta el comportamiento, la organización del código y los **criterios de aceptación**: condiciones observables que permiten comprobar si el resultado cumple lo pedido.
+
+<details>
+<summary>Ejemplo completo: aplicación para organizar lecturas</summary>
+
+```text
+Rol y objetivo
+Actúa como desarrollador frontend con experiencia en accesibilidad.
+Crea una biblioteca personal para registrar libros y seguir su lectura.
+Es un proyecto didáctico para una persona que está aprendiendo JavaScript.
+La interfaz y los comentarios deben estar en español.
+
+Tecnología y entrega
+- Usa únicamente HTML, CSS y JavaScript vanilla, sin frameworks,
+  dependencias, servicios externos ni proceso de compilación.
+- Separa el código en index.html, styles.css y app.js.
+- Entrega el contenido completo de cada archivo en un bloque identificado
+  con su nombre; evita fragmentos incompletos o partes omitidas.
+- Incluye instrucciones para abrirlo con un servidor HTTP local.
+
+Modelo de datos y arquitectura
+- Mantén la colección en un arreglo de objetos con estos campos:
+  id, titulo, autor, paginasTotales y paginasLeidas.
+- Cada libro debe tener un ID único y estable, conservado al editarlo.
+- Separa las operaciones sobre los datos de la manipulación del DOM.
+- Crea funciones diferenciadas para validar, detectar duplicados,
+  añadir libros, actualizar el progreso, eliminar, calcular el resumen,
+  aplicar filtros, renderizar, guardar y cargar los datos.
+- Calcula el estado a partir de las páginas leídas; no lo guardes
+  como otro campo que pueda contradecirlas:
+  0 = pendiente; entre 1 y el total menos 1 = en lectura;
+  igual al total = terminado.
+
+Funcionalidades
+- Formulario para añadir título, autor y número total de páginas.
+  Un libro nuevo empieza con cero páginas leídas.
+- Lista en tarjetas con título, autor, estado, páginas leídas/total
+  y porcentaje de progreso redondeado al entero más cercano.
+- Permite editar las páginas leídas y eliminar un libro individualmente.
+- Buscador por título o autor y filtro por estado, combinables entre sí.
+- Ordena por título usando el orden alfabético del español.
+- Muestra un resumen de toda la colección, aunque haya filtros activos:
+  número de libros, terminados y páginas leídas acumuladas.
+- Distingue entre una biblioteca vacía y una búsqueda sin coincidencias.
+
+Validaciones y casos límite
+- Título y autor son obligatorios después de quitar espacios exteriores.
+- Las páginas totales deben ser un entero mayor que cero.
+- Las páginas leídas deben ser un entero entre cero y las páginas totales.
+  Rechaza valores fuera del intervalo con un mensaje; no los ajustes
+  silenciosamente ni modifiques el registro anterior.
+- Considera duplicado un libro con el mismo título y autor, ignorando
+  mayúsculas, espacios exteriores y espacios consecutivos repetidos.
+  Permite un mismo título si el autor es distinto.
+- Muestra los errores junto al campo correspondiente y conserva lo
+  escrito para poder corregirlo.
+
+Persistencia
+- Guarda los datos en localStorage bajo la clave biblioteca-personal-v1,
+  con la estructura { version: 1, libros: [...] }.
+- Al cargar, valida el JSON, la versión, los campos y la unicidad de IDs.
+- Si no hay datos guardados, empieza con una colección vacía.
+- Maneja con try/catch tanto lectura y escritura como JSON.parse.
+- Si los datos guardados son inválidos, muestra un aviso y empieza
+  en memoria sin sobrescribir automáticamente el contenido al arrancar.
+- Si guardar falla, conserva los cambios de la sesión y avisa de que
+  podrían perderse al recargar. No muestres una confirmación de guardado.
+
+Código e interfaz
+- Usa addEventListener; evita eventos onclick dentro del HTML.
+- Inserta los textos del usuario mediante textContent.
+- Usa etiquetas label, botones con nombres claros y manejo por teclado.
+  Los estados deben entenderse también mediante texto, sin depender del color.
+- Diseño responsive desde 360 px, sin desplazamiento horizontal.
+- Usa variables CSS, clases reutilizables y estados hover y focus visibles.
+- Añade comentarios breves que expliquen las decisiones importantes.
+
+Criterios de aceptación
+1. Un libro de 120 páginas con 30 leídas muestra 25 % y «En lectura».
+2. Intentar registrar 121 páginas leídas mantiene el valor anterior
+   y muestra un error.
+3. Repetir título y autor cambiando solo mayúsculas o espacios
+   no crea otro libro.
+4. Si el guardado funciona, recargar conserva los libros y su progreso.
+5. Un fallo de localStorage permite seguir usando la sesión y muestra
+   un aviso de que los cambios no se han guardado.
+
+Explicación final
+Explica cómo separaste estado, lógica de negocio y renderizado, cómo
+detectas duplicados y cómo gestionas los errores de almacenamiento.
+Incluye pasos para comprobar los criterios de aceptación manualmente;
+indica cuáles has comprobado realmente y cuáles quedan pendientes.
+```
+
+</details>
+
+La precisión está en reglas como **«el mismo título con otro autor se permite»** o **«121 páginas leídas no deben cambiar un libro de 120»**. Aclaran decisiones que «gestiona bien los duplicados» o «valida correctamente» dejan abiertas. Elige los requisitos que necesite tu proyecto: el ejemplo sirve como guía, no como plantilla obligatoria.
+
 **Comprueba lo aprendido**
 
-1. En el ejemplo, ¿qué parte indica a quién va dirigida la explicación y cuál establece cómo presentarla?
-2. Mejora «Háblame de las plantas» añadiendo una tarea concreta y un formato de salida.
+1. En el ejemplo del ciclo del agua, ¿qué parte indica a quién va dirigida la explicación y cuál establece cómo presentarla?
+2. La biblioteca permite guardar 121 páginas leídas en un libro de 120. ¿Qué criterio de aceptación se incumple y qué debería ocurrir con el valor anterior?
 
 <details>
 <summary>Ver respuestas</summary>
 
 1. El **contexto** indica la edad y la situación de la destinataria; el **formato de salida** pide un título y tres pasos.
-2. Una opción: «Explica qué necesitan las plantas para crecer en una lista de cuatro puntos».
+2. Se incumple el criterio 2. Debe mostrarse un error y conservarse el valor anterior, sin guardar el dato inválido.
+
+</details>
+
+## 16. Vibe coding: crear software con lenguaje natural
+
+El **vibe coding** consiste en crear software describiendo lo que quieres en lenguaje natural y pidiendo a una IA que genere y modifique el código. El trabajo avanza por iteraciones: das una instrucción, observas el resultado y solicitas ajustes.
+
+En su sentido original, el término destaca trabajar guiándose por el resultado visible, con poca o ninguna revisión del código generado. **Comprender, revisar y validar ese código** permite usar la IA dentro de un proceso de desarrollo más controlado. [Referencia: alcance del término y usos](https://simonwillison.net/2025/Mar/19/vibe-coding/).
+
+Por ejemplo: «Crea una página para organizar mis lecturas, con título, autor y estado». Después puedes pedir: «Añade un filtro para ver solo los libros pendientes». Es parecido a encargar una primera maqueta y afinarla al verla funcionar.
+
+### Cuándo usarlo
+
+Encaja especialmente en tareas **de bajo impacto, fáciles de comprobar y de rehacer**:
+
+| Situación | Ejemplo |
+| --- | --- |
+| **Crear scripts para tareas sencillas** | Script en Python que recorre copias de archivos de texto y cuenta sus líneas. |
+| **Cambiar el formato de un fichero** | Convertir una lista de objetos JSON a CSV, indicando las columnas, su orden y qué hacer si falta un campo. |
+| **Crear funciones individuales** | Función que convierte minutos en horas y minutos, con entradas y resultados fáciles de comprobar. También puede servir para explorar un generador de contraseñas con requisitos concretos. |
+| **Explorar una idea** | Prototipo de una agenda con datos ficticios para decidir cómo debería verse. |
+| **Crear una herramienta personal sencilla** | Temporizador de estudio que funciona en el navegador. |
+| **Aprender o experimentar** | Pequeño juego de preguntas sobre geografía. |
+
+**Ejemplo de petición para un script:** «Convierte `catalogo.json`, que contiene una lista de objetos, en `catalogo.csv` con las columnas `codigo`, `nombre` y `categoria`, en ese orden. Usa UTF-8, deja vacíos los campos ausentes y conserva el JSON original. Si el archivo no contiene una lista de objetos, muestra un error claro».
+
+**Funciones de contraseñas:** puedes pedir una longitud y condiciones concretas, como 20 caracteres con al menos una mayúscula, una minúscula, un dígito y un símbolo. Para uso real también importa cómo se eligen los caracteres: en Python se utiliza `secrets` para aleatoriedad criptográficamente segura. Cumplir la longitud y las categorías no basta para garantizar la seguridad de una implementación. [Referencia: generación de secretos en Python](https://docs.python.org/3/library/secrets.html).
+
+Antes de ampliar el proyecto, valora qué ocurriría si fallara o expusiera información. Una maqueta con datos ficticios y una aplicación utilizada por clientes tienen consecuencias distintas. [Referencia: proyectos de bajo impacto](https://simonwillison.net/2025/Mar/19/vibe-coding/#when-is-it-ok-to-vibe-code).
+
+### Prueba de concepto: planificar una semana de estudio
+
+Una **prueba de concepto** o **PoC** (*Proof of Concept*) es una implementación acotada que permite comprobar una idea antes de invertir en una solución completa. En este caso queremos comprobar si organizar sesiones por día, con varios bloques y un resumen de minutos, resulta útil para planificar la semana.
+
+<details>
+<summary>Ejemplo de prompt completo para la prueba de concepto</summary>
+
+```text
+Crea una aplicación web llamada «Mi semana de estudio» utilizando solo
+HTML, CSS y JavaScript vanilla. Es una prueba de concepto personal,
+con datos ficticios y sin cuentas de usuario ni servidor de aplicación.
+
+Entrega y organización
+- Separa el código en index.html, styles.css y app.js.
+- Entrega los tres archivos completos y las instrucciones para abrirlos
+  mediante un servidor HTTP local.
+- Mantén el estado en un arreglo de sesiones. Cada sesión tendrá ID,
+  nombre, día de la semana y un arreglo de bloques.
+- Cada bloque tendrá ID, materia, objetivo, duración en minutos y
+  un indicador de completado.
+- Separa las funciones que modifican los datos de las que renderizan
+  la interfaz y de las que leen o guardan en localStorage.
+
+Interfaz
+- Muestra el título, un botón «Nueva sesión» y las sesiones agrupadas
+  de lunes a domingo. Permite varias sesiones en el mismo día.
+- Usa un diseño claro en tonos azul y crema, adaptable desde 360 px.
+- En cada sesión muestra su nombre, los bloques y la duración total.
+- En cada bloque muestra materia, objetivo, minutos y estado de completado.
+- Incluye un resumen semanal: minutos planificados y minutos completados,
+  calculados sobre todas las sesiones, aunque se filtre un día.
+- Muestra mensajes distintos cuando no haya sesiones y cuando el día
+  seleccionado no tenga ninguna.
+
+Crear y editar sesiones
+- Abre un modal con nombre de la sesión y selector de día.
+- Permite añadir varios bloques con materia, objetivo y duración.
+- Los botones «Añadir bloque», «Eliminar bloque», «Guardar» y «Cancelar»
+  deben tener funciones claras y no enviar el formulario por accidente.
+- Permite editar y eliminar sesiones existentes, y marcar sus bloques
+  como completados desde la vista principal.
+- Editar conserva los IDs y el estado de los bloques que ya existían.
+- Cancelar o cerrar el modal descarta los cambios pendientes sin alterar
+  la sesión guardada. Tras cerrar, devuelve el foco al control que lo abrió.
+
+Reglas y validaciones
+- Nombre, materia y objetivo son obligatorios tras quitar espacios exteriores.
+- Cada duración debe ser un número entero entre 5 y 180 minutos.
+- Cada sesión debe contener al menos un bloque para poder guardarse.
+- No permitas dos sesiones con el mismo nombre en el mismo día,
+  ignorando mayúsculas y espacios exteriores. Sí en días diferentes.
+- Al editar, no consideres la propia sesión como un duplicado.
+- Muestra errores junto a los campos y conserva lo escrito para corregirlo.
+
+Persistencia y código
+- Guarda y carga las sesiones con la clave semana-estudio-v1 de localStorage.
+- Al cargar, valida la estructura, los campos y la unicidad de IDs.
+- Si el contenido guardado está dañado, muestra un aviso e inicia una
+  colección vacía en memoria; no lo sobrescribas automáticamente al arrancar.
+- Maneja errores de lectura, JSON.parse y escritura con try/catch.
+- Si falla el guardado, permite continuar en memoria y avisa de que
+  los cambios de la sesión podrían perderse al recargar.
+- Usa addEventListener y textContent para los textos del usuario.
+- Añade labels, manejo por teclado y foco visible; no comuniques
+  el estado de completado únicamente mediante colores.
+- Usa variables CSS, clases reutilizables y comentarios breves.
+
+Criterios para valorar el prototipo
+1. Una sesión con bloques de 25 y 15 minutos muestra un total de 40.
+2. Al completar el bloque de 25, el resumen contabiliza 25 minutos
+   completados y mantiene 40 minutos planificados.
+3. Introducir una duración de -10 impide guardar y muestra el error.
+4. Cancelar una edición deja la sesión original sin cambios.
+5. Si el almacenamiento funciona, recargar conserva los bloques completados.
+6. Eliminar un bloque o una sesión actualiza sus totales y el resumen semanal.
+
+Explica brevemente las decisiones sobre estado, edición y persistencia.
+Incluye una guía de comprobación manual e indica qué has comprobado
+realmente y qué queda pendiente.
+```
+
+</details>
+
+El objetivo de esta PoC es comprobar el flujo de uso y las reglas principales. Que funcione con unos ejemplos permite decidir cómo continuar; convertirla en una aplicación compartida exigiría resolver necesidades adicionales, como usuarios, permisos y almacenamiento en servidor. La estructura del [prompt preciso](#prompt-preciso-para-crear-una-aplicación) ayuda a definir estos límites desde el principio.
+
+### Cómo trabajar en cuatro pasos: de la idea a una web comprobada
+
+Podemos construir la web **«Mi semana de estudio»** por etapas. Cada paso tiene un objetivo y una petición concreta; así resulta más fácil valorar los cambios y localizar errores.
+
+#### 1. Definir qué quieres hacer
+
+Describe para quién es la web, qué problema resuelve y qué debe permitir hacer. Acota la primera versión antes de pedir código.
+
+> Quiero una web personal para organizar mis sesiones de estudio de lunes a domingo. Cada sesión tendrá nombre y varios bloques con materia, objetivo y minutos. Necesito crear sesiones, verlas por día y conservarlas al recargar. Antes de programar, resume el alcance y propone un plan breve. Esta primera versión no tendrá cuentas de usuario.
+
+**Qué revisar:** que el plan refleje tus necesidades y que las reglas sean claras. Por ejemplo, permitir varias sesiones en un día y exigir duraciones entre 5 y 180 minutos.
+
+#### 2. Concretar cómo construirla y crear una primera versión
+
+Indica la tecnología, la organización del código y las funciones mínimas. Puedes utilizar el prompt completo de la PoC para precisar los requisitos.
+
+> Implementa la primera versión con HTML, CSS y JavaScript vanilla, en index.html, styles.css y app.js. Mantén las sesiones en un arreglo y separa datos, renderizado y persistencia. Permite crear y eliminar sesiones con varios bloques, valida sus campos y guarda en localStorage con manejo de errores. Empieza con una interfaz sencilla y explica cómo abrir la web.
+
+**Qué revisar:** que puedas completar el recorrido principal: crear una sesión, verla en su día y recuperarla al recargar. Guarda esta versión antes de ampliarla para poder comparar o recuperar cambios.
+
+#### 3. Mejorar con peticiones pequeñas y observables
+
+Usa la primera versión y señala una mejora concreta. Pide cambios acotados para poder relacionar cada modificación con su resultado.
+
+> Añade un resumen semanal de minutos planificados y completados. Permite marcar cada bloque como completado y actualiza el resumen al hacerlo. Mantén los datos ya guardados y las funciones que funcionan. Explica qué archivos y funciones has modificado.
+
+Después puedes pedir otra mejora, como adaptar las tarjetas a una pantalla de 360 px. Revisa cada cambio antes de acumular el siguiente.
+
+#### 4. Hacer pruebas, comunicar fallos y volver a comprobar
+
+Comprueba situaciones normales, errores y persistencia. Pide que se distinga lo comprobado realmente de lo que queda pendiente.
+
+> Comprueba una sesión con bloques de 25 y 15 minutos: debe mostrar 40 minutos planificados y, al completar el primero, 25 completados. Verifica que una duración de -10 impide guardar, que eliminar actualiza el resumen y que recargar conserva los cambios cuando el almacenamiento funciona. Revisa también el uso con teclado y en móvil. Indica los pasos, el resultado esperado y el observado; si no puedes ejecutar alguna comprobación, déjala como pendiente.
+
+Si encuentras un fallo, aporta **pasos para reproducirlo, resultado esperado y resultado observado**:
+
+> Creo bloques de 25 y 15 minutos, completo el primero y elimino ese bloque. Espero que queden 15 minutos planificados y 0 completados, pero el resumen sigue mostrando 25 completados. Corrige el cálculo y vuelve a comprobar este caso y el recorrido de crear, guardar y recargar.
+
+El proceso es un ciclo: **definir → construir → mejorar → comprobar**. Un fallo puede llevarte a aclarar una regla o corregir una implementación antes de seguir añadiendo funciones.
+
+### Cuándo evitar un desarrollo sin revisión
+
+En estos casos, aceptar el resultado solo porque «parece funcionar» deja riesgos importantes sin comprobar:
+
+| Ámbito | Qué puede fallar |
+| --- | --- |
+| **Aplicaciones de alta seguridad** | Un error en el inicio de sesión o en los permisos puede dar acceso a otra persona. |
+| **Sistemas financieros** | Un fallo en una transferencia, un saldo o un redondeo puede provocar pérdidas. |
+| **Salud y equipos físicos** | Una decisión incorrecta puede afectar a una persona o al funcionamiento de una máquina. |
+| **Datos sensibles y operaciones irreversibles** | Exposición de información personal, borrado de registros o cambios difíciles de recuperar. |
+
+La IA puede ayudar a desarrollar estos sistemas, pero su entrega necesita revisión técnica, pruebas adecuadas y validación de las partes críticas. La autonomía del asistente requiere también controlar sus permisos y revisar los cambios. [Referencia: seguridad al desarrollar con agentes](https://code.visualstudio.com/docs/agents/run/security).
+
+### Falta de determinismo: qué puede variar
+
+Una misma petición puede producir **código distinto en ejecuciones diferentes**: otra estructura, nombres diferentes o una solución alternativa. Influyen el modelo, el contexto y la selección de tokens, como vimos en [temperatura, top-k y top-p](#temperatura-top-k-y-top-p).
+
+Por ejemplo, «ordena esta lista de libros» puede generar una versión que distingue mayúsculas y otra que las ignora. Para concretar el comportamiento, puedes pedir: «Ordena por título, ignora mayúsculas y conserva los duplicados».
+
+**La variabilidad de la generación y el determinismo del programa son cuestiones diferentes.** Una vez fijado el código, un programa determinista repite su resultado con las mismas entradas, estado y condiciones. Un programa que consulta un LLM o utiliza azar puede incorporar variabilidad durante su ejecución.
+
+### Modo agente frente a Ask question
+
+Los nombres y las capacidades dependen de la herramienta. La distinción habitual es:
+
+| Modo | Qué hace | Ejemplo de petición |
+| --- | --- | --- |
+| **Ask / Ask question — preguntar** | Explica, analiza o propone código para que tú decidas cómo aplicarlo. Puede consultar el contexto disponible; normalmente no aplica cambios directamente. | «¿Por qué mi lista pierde los datos al recargar? Explícamelo antes de cambiar nada». |
+| **Agent — agente** | Utiliza herramientas para trabajar sobre el proyecto: inspecciona archivos, los modifica y puede ejecutar comandos e iterar, según sus permisos. | «Añade almacenamiento local a la lista de lecturas y muestra los cambios realizados». |
+
+**Ask** es útil para entender una decisión; **Agent**, para delegar una tarea concreta. El modo agente define la capacidad de actuar: puedes usarlo revisando cada cambio y manteniendo el control técnico del proyecto. [Referencias: preguntas en el IDE](https://docs.github.com/en/copilot/how-tos/copilot-in-your-ide/chat-with-copilot/chat-in-ide) y [modo agente](https://docs.github.com/en/copilot/how-tos/copilot-in-your-ide/use-copilot-agents/use-agent-mode).
+
+### Buenas prácticas: planificar antes de ejecutar
+
+Antes de delegar cambios, pide un **plan** con el alcance, los archivos afectados, las reglas que debe respetar y cómo comprobar el resultado. Revisarlo permite detectar decisiones incorrectas antes de que se conviertan en código. Algunas herramientas ofrecen un modo **Plan** para analizar y proponer pasos antes de pasar a la ejecución. [Referencia: planificación con agentes](https://docs.github.com/en/copilot/how-tos/copilot-in-your-ide/use-copilot-agents/use-plan-mode).
+
+Trabajar **de forma incremental** consiste en completar y revisar una parte pequeña antes de continuar con la siguiente. Por ejemplo, crear primero el dominio y sus reglas; después, cuando existan sus especificaciones, los casos de uso y las conexiones externas. El plan marca el rumbo, pero el incremento actual delimita qué se implementa ahora.
+
+**Analizar el impacto en todas las capas:** un cambio pequeño en una entidad o regla puede afectar a quienes la utilizan. Antes de editar, pide al agente que siga esas dependencias: dominio, casos de uso, API, objetos de transferencia de datos (**DTO**), almacenamiento e interfaz, según existan en el proyecto. También debe revisar la configuración, las pruebas y la documentación relacionadas.
+
+Por ejemplo, si añades una capacidad máxima a una reserva, puede ser necesario validar el dato en el dominio, recibirlo en la API, guardarlo y mostrar el error en el formulario. Modificar solo el campo visible puede dejar el resto del recorrido incompatible.
+
+Puedes incorporar esta instrucción al prompt:
+
+```text
+Antes de implementar, analiza el impacto del cambio en todas las capas
+existentes y en los componentes que utilizan los datos o contratos afectados.
+Identifica qué debe cambiar y actualízalo de forma coherente dentro del
+alcance solicitado. Revisa validaciones, llamadas, formatos de entrada
+y salida, persistencia, interfaz, configuración y documentación aplicables.
+Si hay datos guardados que necesiten una migración, indícalo.
+Comprueba el recorrido completo y las regresiones relevantes mediante
+las verificaciones permitidas. Informa de lo comprobado y de lo pendiente.
+Conserva el comportamiento no afectado; no crees capas futuras ni hagas
+refactorizaciones ajenas a esta tarea.
+```
+
+El objetivo es **reducir regresiones**, es decir, evitar que el cambio estropee funciones que antes funcionaban. La revisión y las comprobaciones aportan evidencia; no garantizan la ausencia de cualquier fallo.
+
+En una **arquitectura hexagonal**, las reglas del negocio se mantienen independientes de detalles como la interfaz o la base de datos. Así podemos empezar por el dominio sin construir todavía esos componentes externos. [Referencia: arquitectura hexagonal, puertos y adaptadores](https://alistair.cockburn.us/hexagonal-architecture).
+
+<details>
+<summary>Ejemplo incremental en .NET: dominio de una aplicación de talleres</summary>
+
+**Primera petición: preparar el plan.**
+
+```text
+Vamos a desarrollar WorkshopPlanner de forma incremental.
+El primer incremento será únicamente el componente de dominio.
+Primero presenta un plan; todavía no crees ni modifiques archivos
+ni ejecutes comandos que cambien el proyecto.
+
+Contexto técnico
+- C# y .NET 10; el SDK ya está instalado.
+- Código, nombres y comentarios en inglés.
+- Arquitectura hexagonal: el dominio no dependerá de interfaz,
+  base de datos ni frameworks de persistencia.
+
+Alcance del primer incremento
+- Solución WorkshopPlanner.
+- Biblioteca de clases WorkshopPlanner.Domain.
+- Entidad Workshop en una carpeta Entities.
+- Clase DomainException, derivada de Exception, en Exceptions.
+- Utiliza DomainException para comunicar incumplimientos de las
+  reglas de negocio a las capas que añadiremos más adelante.
+
+Reglas de Workshop
+- Tendrá Id, Title, Capacity y EnrolledCount.
+- Id no puede estar vacío y Title no puede estar en blanco.
+- Capacity debe ser un entero mayor que cero.
+- EnrolledCount comienza en cero.
+- El método Enroll incrementa las inscripciones si quedan plazas.
+- Si el taller está completo, lanza DomainException y no cambia el contador.
+- Evita que código externo modifique directamente el contador
+  o deje la entidad en un estado que incumpla estas reglas.
+
+En el plan incluye la estructura de archivos, los pasos y los criterios
+para comprobar el incremento. Señala cualquier ambigüedad relevante.
+No añadas API, interfaz, repositorios ni base de datos en esta etapa.
+Los demás componentes tendrán sus propias especificaciones más adelante.
+```
+
+**Después de revisar el plan, una segunda petición concreta la ejecución:**
+
+```text
+Implementa únicamente el incremento de dominio descrito en el plan.
+Avanza en este orden: solución y biblioteca, DomainException, entidad
+y comprobación de las reglas.
+Revisa los cambios existentes antes de editar y conserva lo ajeno a la tarea.
+Al terminar, indica los archivos creados o modificados, las comprobaciones
+realmente realizadas y cualquier punto pendiente.
+Detente al completar este incremento, sin comenzar otros componentes.
+```
+
+**Qué revisar al cerrar el incremento:** la biblioteca compila, un taller con capacidad 2 acepta dos inscripciones y rechaza la tercera sin aumentar el contador, y el dominio permanece independiente de componentes externos. Compilar confirma que el código se puede construir; comprobar las reglas confirma su comportamiento.
+
+</details>
+
+Antes de continuar, conserva una versión revisada, por ejemplo mediante un commit de Git. Si aparece un error, corrige y vuelve a comprobar ese incremento antes de añadir nuevas capas. Este hábito aplica el ciclo de [definir, construir, mejorar y comprobar](#cómo-trabajar-en-cuatro-pasos-de-la-idea-a-una-web-comprobada) a tareas realizadas por un agente.
+
+**Comprueba lo aprendido**
+
+1. Pides dos veces una calculadora y recibes dos implementaciones distintas. ¿Significa que cada una dará resultados diferentes cada vez que sumes los mismos números?
+2. Has pedido crear únicamente el dominio y el plan incluye una API y una base de datos. ¿Qué ajustarías antes de permitir que el agente ejecute los cambios?
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. No. Puede variar el código generado y, aun así, cada implementación ser determinista. También hay que comprobar que ambas calculan correctamente lo solicitado.
+2. Reduciría el plan al incremento actual: biblioteca de dominio, entidad y reglas. La API y la base de datos quedan para etapas posteriores con sus propias especificaciones.
+
+</details>
+
+## 17. Instrucciones para agentes: /init y AGENTS.md
+
+Un **archivo de instrucciones para agentes** recoge acuerdos del proyecto: cómo organizar el código, qué convenciones respetar y cómo trabajar. Es como una hoja de incorporación para alguien que se une al equipo. El agente puede cargarla como contexto para evitar que tengas que repetir esas reglas en cada petición.
+
+### Qué hace /init
+
+En **Codex CLI**, escribe `/init` dentro de la sesión interactiva del agente, situado en el directorio del proyecto. Genera un punto de partida para `AGENTS.md` a partir del contexto que obtiene del repositorio. Después revisa y ajusta las instrucciones: el archivo generado puede omitir acuerdos que solo tú conoces. [Referencias: comando /init](https://learn.chatgpt.com/docs/developer-commands?surface=cli#generate-agentsmd-with-init) y [preparación de instrucciones](https://developers.openai.com/cookbook/examples/codex/iterating-development-workflows-with-codex).
+
+```text
+/init
+```
+
+En **Claude Code**, `/init` genera un `CLAUDE.md` inicial; si ya existe, propone mejoras. El nombre del comando puede coincidir entre herramientas y producir archivos diferentes. Estos archivos aportan instrucciones al contexto; no reentrenan el modelo. [Referencia: inicialización de CLAUDE.md](https://code.claude.com/docs/en/memory#set-up-a-project-claudemd).
+
+### Archivos según la herramienta
+
+**Verificado el 8 de noviembre de 2026.** Los formatos los reconoce la herramienta que ejecuta el agente, no la familia del modelo por sí sola. Un mismo modelo usado desde dos aplicaciones puede recibir instrucciones de archivos distintos.
+
+| Herramienta | Instrucciones del proyecto | Otros formatos y alcance |
+| --- | --- | --- |
+| **Codex CLI** | `AGENTS.md` | Admite instrucciones en directorios de su recorrido de trabajo y `AGENTS.override.md`, que se prefiere al `AGENTS.md` del mismo directorio. Las personales se ubican en el directorio de Codex, normalmente `~/.codex/AGENTS.md`. [Documentación](https://learn.chatgpt.com/docs/agent-configuration/agents-md). |
+| **Claude Code** | `CLAUDE.md` o `.claude/CLAUDE.md` | Reglas por tema en `.claude/rules/*.md`, preferencias locales en `CLAUDE.local.md` y personales en `~/.claude/CLAUDE.md`. También admite `AGENTS.md` bajo las condiciones indicadas debajo. [Documentación](https://code.claude.com/docs/en/memory). |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | Reglas específicas en `.github/instructions/**/*.instructions.md` y archivos `AGENTS.md` en las funciones compatibles. La disponibilidad y el alcance dependen del cliente y de la función de Copilot. [Repositorio](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) y [referencia de VS Code](https://code.visualstudio.com/docs/agents/reference/custom-instructions-reference). |
+| **Cursor** | `AGENTS.md` o `.cursor/rules/*.mdc` | `AGENTS.md` puede estar en la raíz y en subdirectorios. Las reglas `.mdc` permiten configurar cuándo se aplican. También existen reglas personales y de equipo; `.cursorrules` es un formato heredado. [Documentación](https://prod.cursor.com/docs/rules) y [reglas heredadas](https://prod.cursor.com/help/customization/rules). |
+
+**En Claude Code:** la lectura directa de `AGENTS.md` requiere la versión 2.1.277 o posterior. Por defecto se utiliza cuando no hay `CLAUDE.md` ni `CLAUDE.local.md` aplicables en el directorio de trabajo o sus antecesores; la configuración puede cambiar ese comportamiento. Para compartir instrucciones también se puede importar `@AGENTS.md` desde `CLAUDE.md`. [Referencia: compatibilidad y selección de archivos](https://code.claude.com/docs/en/memory#agentsmd).
+
+Utiliza el nombre exacto **`AGENTS.md`**, incluidas las mayúsculas, para que funcione también en sistemas que las distinguen. Si mantienes varios formatos, evita copiar reglas contradictorias entre ellos.
+
+### ¿Es mejor escribirlo en inglés para ahorrar tokens?
+
+El inglés **puede** necesitar menos tokens para expresar algunas instrucciones, pero no es una garantía: depende del tokenizador, la redacción y el contenido. Para comparar dos versiones equivalentes hay que contarlas con el tokenizador del modelo utilizado. La recomendación práctica es mantener reglas breves, claras y sin duplicados. [Referencia: tokenizadores y recuento](https://developers.openai.com/cookbook/examples/how_to_count_tokens_with_tiktoken).
+
+Puedes escribir las instrucciones en inglés y pedir por separado **código en inglés** y **explicaciones en español**. El idioma del archivo no determina automáticamente el de las respuestas.
+
+### Important: convenciones y comprobación de lectura
+
+El [AGENTS.md de este repositorio](AGENTS.md) está escrito en inglés y termina con `## Important`. Ese encabezado organiza el texto; no es una palabra especial que otorgue más prioridad a sus reglas.
+
+El bloque incluye estas instrucciones:
+
+```markdown
+## Important
+
+- Write new source code, identifiers and code comments in English.
+  Keep study notes, user-facing explanations and interface text in Spanish.
+- Once per conversation, after reading this file, acknowledge it with:
+  "Leído, campeón."
+- Ask one applied comprehension question with two or three choices.
+  Use a quiz selector if available; otherwise show text choices and
+  put the answer in a collapsible Markdown details block.
+- Continue the requested work without waiting for the quiz answer.
+  Do not repeat this introductory check on every turn.
+```
+
+La frase funciona como una **señal de seguimiento de una instrucción**, y la pregunta ayuda a repasar. Esa señal no demuestra por sí sola que el agente haya leído y aplicado todas las reglas: también hay que observar su trabajo. Un archivo Markdown no crea un selector interactivo por sí mismo; ese control depende de la interfaz. Un bloque `<details>` permite desplegar la respuesta en los visores que lo admiten.
+
+Después de cambiar instrucciones, comprueba qué archivos carga la herramienta. En Codex, la cadena se construye al iniciar la ejecución o sesión; para verificar la carga automática de cambios, inicia una sesión nueva. Pedir que abra el archivo durante un chat permite consultarlo explícitamente, pero no verifica esa carga automática. [Referencia: descubrimiento y comprobación de instrucciones](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+
+**Comprueba lo aprendido**
+
+1. El agente responde «Leído, campeón», pero escribe código nuevo en español. ¿Qué puedes concluir de esa señal?
+2. Cambias de aplicación manteniendo el mismo modelo. ¿Puedes asumir que cargará el mismo archivo de instrucciones?
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. Ha reproducido la frase, pero no ha seguido todas las reglas. Debes revisar qué instrucciones recibió y cómo las aplicó; el marcador no basta para validar el cumplimiento.
+2. No. La aplicación y su configuración determinan los formatos, el alcance y la carga de las instrucciones. Hay que consultar la compatibilidad de esa herramienta.
+
+</details>
+
+## 18. Skills: procedimientos reutilizables con datos de entrada
+
+Una **skill** es un conjunto reutilizable de instrucciones para realizar una tarea concreta. En su forma más sencilla, contiene un prompt guardado en un archivo de texto llamado **`SKILL.md`**. También puede incluir scripts, plantillas y documentación de apoyo.
+
+Piensa en una receta: indica cuándo utilizarla, qué ingredientes necesita, qué pasos seguir y qué resultado preparar. Puedes repetir el procedimiento cambiando los datos de entrada. [Referencia: skills y recursos](https://developers.openai.com/plugins/concepts/skills).
+
+### Formato de una skill
+
+El formato abierto **Agent Skills** organiza cada skill en su propia carpeta:
+
+```text
+change-impact/
+├── SKILL.md       ← instrucciones y metadatos obligatorios
+├── references/    ← documentación opcional
+├── scripts/       ← código opcional para ejecutar tareas
+└── assets/        ← plantillas y recursos opcionales
+```
+
+`SKILL.md` comienza con una cabecera **YAML**, delimitada por dos líneas `---`, seguida de instrucciones en **Markdown**:
+
+| Parte | Función |
+| --- | --- |
+| `name` | Identifica la skill. Para un ejemplo portable, usa minúsculas y guiones, y el mismo nombre que la carpeta. |
+| `description` | Explica qué hace y cuándo debe utilizarse. Ayuda al agente a decidir si corresponde activarla. |
+| Cuerpo Markdown | Describe entradas, pasos, límites y resultado esperado. Los títulos internos organizan las instrucciones. |
+
+`name` y `description` son los campos requeridos por el estándar. Secciones como `## Inputs` o `## Output` son una forma de organizar el contenido, no campos especiales que validen los datos automáticamente. [Referencia: especificación Agent Skills](https://agentskills.io/specification).
+
+### Ejemplo: analizar el impacto de un cambio
+
+Esta skill convierte el [análisis de impacto entre capas](#buenas-prácticas-planificar-antes-de-ejecutar) en un procedimiento reutilizable. Recibe un cambio y el contexto del proyecto; devuelve un análisis y un plan, sin implementar nada.
+
+<details>
+<summary>Ver el contenido de change-impact/SKILL.md</summary>
+
+```markdown
+---
+name: change-impact
+description: Analyze the impact of a proposed software change across existing layers. Use when asked for an impact assessment before implementation, not when asked only to explain a term.
+---
+
+# Change impact analysis
+
+## Inputs
+
+- Required: the proposed change and its expected behavior.
+- Required: the relevant project, files or architecture description.
+- Optional: compatibility constraints and the allowed scope.
+- Reuse information already present in the conversation or repository.
+  Ask a focused question only if a missing detail blocks the analysis.
+
+## Workflow
+
+1. Read the applicable project instructions and relevant existing files.
+2. Summarize the requested behavior and the current behavior.
+3. Trace affected callers and contracts across existing layers:
+   domain, application, API, persistence and interface, as applicable.
+4. Identify changes to validation, data formats, stored data,
+   configuration, documentation and relevant tests.
+5. Identify compatibility risks and any required migration.
+6. Propose small implementation steps and acceptance criteria.
+
+## Boundaries
+
+- This is an analysis task: do not modify files or execute changes.
+- Stay within the requested scope; do not invent future components.
+- Distinguish observed facts from assumptions and missing information.
+
+## Output
+
+Respond in Spanish with:
+- A short summary of the change.
+- A table: affected component, required adjustment, risk, verification.
+- An incremental plan and any unresolved questions.
+- Do not claim that proposed checks have already passed.
+```
+
+</details>
+
+### Cómo crearla y activarla según la herramienta
+
+**Verificado el 8 de noviembre de 2026.** Se crea la carpeta en una ubicación reconocida y se guarda dentro el `SKILL.md`. La ruta y la forma de invocarla dependen de la aplicación; compartir el formato no hace universales todos sus campos y comandos.
+
+| Herramienta | Dónde crearla | Cómo solicitar su uso |
+| --- | --- | --- |
+| **Codex CLI / extensión IDE** | `.agents/skills/change-impact/SKILL.md` para el proyecto; `~/.agents/skills/change-impact/SKILL.md` para el usuario. También tiene creador integrado mediante `$skill-creator`. | `$change-impact` junto con la petición, o selección desde `/skills`. Puede elegirla automáticamente por su descripción. [Documentación](https://learn.chatgpt.com/docs/build-skills). |
+| **GitHub Copilot** | Por ejemplo, `.github/skills/change-impact/SKILL.md`. También admite `.agents/skills/` y `.claude/skills/`; las personales pueden ir en `~/.copilot/skills/`. | En clientes compatibles, selección como comando `/change-impact` o activación por relevancia. En Copilot CLI puedes consultar `/skills list` y recargar con `/skills reload`. [Creación](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills), [CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills) y [VS Code](https://code.visualstudio.com/docs/agent-customization/agent-skills). |
+| **Claude Code** | `.claude/skills/change-impact/SKILL.md` para el proyecto, o `~/.claude/skills/change-impact/SKILL.md` para el usuario local. | `/change-impact` con la petición, o selección automática según la descripción y su configuración. [Documentación](https://code.claude.com/docs/en/skills). |
+| **Cursor** | `.cursor/skills/change-impact/SKILL.md` o `.agents/skills/change-impact/SKILL.md`. Para uso personal, `~/.cursor/skills/` o `~/.agents/skills/`. | Crear con `/create-skill` o manualmente; invocar desde `/` buscando el nombre, o dejar que el agente la seleccione cuando corresponda. [Documentación](https://cursor.com/docs/skills) y [creación](https://cursor.com/help/customization/skills). |
+| **ChatGPT** | En la aplicación de escritorio, gestionar skills desde **Skills** y utilizar el creador integrado. Para distribuirlas entre productos y superficies compatibles, pueden empaquetarse en plugins. | Seleccionar la skill con `@` o permitir su selección por relevancia. Las skills independientes y las distribuidas mediante plugins tienen distinta disponibilidad según la superficie. [Creación y disponibilidad](https://learn.chatgpt.com/docs/build-skills) y [skills en plugins](https://developers.openai.com/plugins/concepts/skills). |
+
+La ruta personal corresponde a la máquina donde se ejecuta el agente: guardarla en tu ordenador no implica que un agente remoto pueda verla. Comprueba que aparezca en el selector de la herramienta antes de intentar invocarla.
+
+### Pasar datos de entrada
+
+La misma skill sirve para cambios distintos. En Codex, una petición podría ser:
+
+```text
+$change-impact
+Cambio: permitir modificar la capacidad de un taller.
+Contexto: WorkshopPlanner; utiliza el código existente del proyecto.
+Regla: la nueva capacidad no puede ser menor que el número de inscritos.
+Alcance: analiza las capas existentes y propone un plan; no implementes.
+```
+
+**La skill aporta el procedimiento; la petición aporta los datos concretos.** El agente debe localizar dónde se controla la capacidad, qué componentes la utilizan y cómo comprobar la nueva regla. Si no tiene acceso al código ni una descripción suficiente, debe pedir el contexto necesario en lugar de inventarlo.
+
+En Claude Code, el equivalente empieza por `/change-impact`. Además, esa herramienta permite insertar en el cuerpo de una skill **`$ARGUMENTS`**, que recibe el texto situado después del comando. Es una sustitución de Claude Code; no hay que asumir que funcione igual en todos los productos. [Referencia: argumentos de skills](https://code.claude.com/docs/en/skills#pass-arguments-to-skills).
+
+### ¿Invocarla con un comando o añadirla a AGENTS.md?
+
+| Necesidad | Lugar adecuado |
+| --- | --- |
+| **Acuerdo general:** «El código nuevo se escribe en inglés». | `AGENTS.md` o el archivo de instrucciones que utilice tu herramienta. |
+| **Procedimiento concreto:** «Analiza el impacto de este cambio y entrega una tabla y un plan». | Una skill que se activa para esa tarea. |
+| **Dato de esta ejecución:** «El cambio afecta a la capacidad de los talleres». | La petición que acompaña a la skill. |
+
+No hace falta copiar el procedimiento completo en `AGENTS.md`. Puedes mantener allí una regla breve y conservar el detalle en la skill disponible para el agente. Mencionarla en ese archivo no la instala automáticamente: debe existir en una ubicación reconocida o estar distribuida mediante un mecanismo compatible. [Referencia: skills frente a instrucciones generales](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills#skills-versus-custom-instructions).
+
+Un comando como **`/hi`** sería una invocación propia de una herramienta que admita ese nombre y esa sintaxis; no es un comando universal. Para una regla breve que deba aplicarse habitualmente, el archivo de instrucciones suele ser suficiente. Para un procedimiento que solo necesitas a veces, una skill permite reutilizarlo sin repetirlo en cada prompt.
+
+### Ejemplo de uso: pruebas al crear o modificar un endpoint
+
+Una skill **`endpoint-tests`** puede aplicar siempre el mismo procedimiento para preparar pruebas, cambiando las rutas, los datos de entrada y las reglas de cada endpoint. Un **endpoint** es un punto de acceso a una API, como `POST /workshops` para crear un taller.
+
+Hay dos niveles de comprobación que conviene distinguir:
+
+| Tipo de prueba | Qué comprueba |
+| --- | --- |
+| **Unitaria** | La lógica de una acción, un handler o un caso de uso de forma aislada, sustituyendo sus dependencias cuando sea necesario. Por ejemplo, rechazar una capacidad inferior al número de inscritos. |
+| **De integración HTTP** | La petición enviada a la aplicación: ruta, lectura del JSON, validación y respuesta HTTP. Permite detectar errores que no aparecen al llamar directamente a un método. |
+
+Una prueba unitaria que pasa no demuestra por sí sola que la URL acepte la petición correctamente. [Referencias: pruebas unitarias de controladores](https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/testing?view=aspnetcore-10.0) e [integración en ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-10.0).
+
+**Regla general y procedimiento:** para pedirlo cada vez que se cree o modifique un endpoint, puedes incluir este acuerdo en el archivo de instrucciones del proyecto:
+
+```markdown
+When creating or modifying an endpoint, use the endpoint-tests skill
+to add or update unit tests for the affected behavior, with explicit
+input data and expected results. Include relevant HTTP integration
+coverage when the request or response contract changes.
+Respect the user's restrictions on running tests and report pending checks.
+```
+
+La regla expresa cuándo debe hacerlo; la skill detalla cómo. Debe estar disponible para la herramienta, y su selección por un agente no equivale a un disparador de código garantizado. Si el equipo exige estas pruebas para integrar cambios, puede reforzarlo con verificaciones obligatorias en **CI**, la automatización que ejecuta comprobaciones sobre el proyecto.
+
+<details>
+<summary>Ejemplo de endpoint-tests/SKILL.md</summary>
+
+```markdown
+---
+name: endpoint-tests
+description: Create or update tests when an API endpoint is added or modified. Use the endpoint contract, sample inputs and business rules to cover successful operations, validation failures and relevant regressions.
+---
+
+# Endpoint tests
+
+## Inputs
+
+- HTTP method and route for each affected endpoint.
+- Request and response contracts, including expected status codes.
+- Business rules, valid and invalid input examples, and required initial data.
+- Existing implementation, test framework and relevant test files.
+- Reuse available project context; ask about missing requirements
+  instead of inventing contracts or expected behavior.
+
+## Workflow
+
+1. Read the applicable project instructions and existing test conventions.
+2. Trace the endpoint to its handler, application logic and domain rules.
+3. List meaningful cases: successful creation or update, invalid input,
+   missing resources and any relevant business-rule violation.
+4. Add or update isolated unit tests using Arrange, Act and Assert:
+   prepare inputs and dependencies, invoke the behavior, verify results.
+5. For rejected updates, verify that existing data remains unchanged.
+6. Add relevant HTTP integration tests when needed to verify routing,
+   JSON binding, validation and response contracts.
+7. Recheck affected callers and existing tests when shared contracts change.
+8. Run the relevant checks only when permitted by the user and environment.
+
+## Boundaries
+
+- Follow the existing test framework and project architecture.
+- Do not call production services or use production data.
+- Use fixed fixtures and isolated test state; tests must not depend
+  on execution order, random values or the current date unnecessarily.
+- Do not change business rules just to make a test pass.
+- Do not invent unrelated endpoints or features.
+
+## Output
+
+Respond in Spanish with the cases covered, files changed and checks
+actually run. Identify any missing coverage or pending verification.
+Write test names, identifiers and code comments in English.
+```
+
+</details>
+
+**Ejemplo de invocación con datos de entrada en Codex:**
+
+```text
+$endpoint-tests
+Contexto: API de talleres; utiliza la implementación y el proyecto
+de pruebas existentes. Estamos añadiendo creación y modificación.
+
+Contrato de este ejemplo:
+- POST /workshops recibe title y capacity. Con datos válidos devuelve
+  201 y el taller creado, con un ID nuevo.
+- PUT /workshops/{id} recibe title y capacity. Devuelve 200 con el
+  taller actualizado, conservando su ID y sus inscritos.
+- Un título vacío o una capacidad no positiva producen 400.
+- Modificar un ID inexistente produce 404.
+- Reducir la capacidad por debajo de los inscritos produce 409
+  y conserva los datos anteriores.
+
+Datos válidos de creación:
+{ "title": "Robótica", "capacity": 12 }
+
+Estado inicial para las pruebas de modificación:
+{ "id": 42, "title": "Robótica", "capacity": 12, "enrolledCount": 8 }
+
+Datos válidos de modificación:
+{ "title": "Robótica avanzada", "capacity": 10 }
+
+Datos inválidos:
+- Creación: { "title": "", "capacity": 0 }
+- Modificación del taller 42: { "title": "Robótica", "capacity": 7 }
+
+Actualiza las pruebas unitarias de la lógica afectada y cubre el contrato
+HTTP con pruebas de integración relevantes. Indica cuáles se ejecutaron
+y cuáles quedan pendientes.
+```
+
+Los códigos HTTP anteriores son **decisiones del contrato de este ejemplo**; en un proyecto real se utilizan los que establezca su API. Para cubrir bien las validaciones, prueba por separado el título vacío y la capacidad no positiva: una petición con ambos errores no demuestra que cada regla funcione de forma independiente.
+
+| Caso | Preparación y entrada | Resultado que debe comprobarse |
+| --- | --- | --- |
+| **Creación válida** | Título «Robótica», capacidad 12. | Se crea un taller con esos valores y un ID válido; la prueba HTTP comprueba el 201. |
+| **Título inválido** | Título vacío, capacidad 12. | Se rechaza sin crear ningún taller; la prueba HTTP comprueba el 400. |
+| **Capacidad inválida** | Título válido, capacidad 0. | Se rechaza sin crear ningún taller; la prueba HTTP comprueba el 400. |
+| **Modificación válida** | Taller 42 con 8 inscritos; nueva capacidad 10. | Cambian el título y la capacidad, se conservan el ID y los 8 inscritos; respuesta HTTP 200. |
+| **Modificación rechazada** | Taller 42 con 8 inscritos; nueva capacidad 7. | Se rechaza y conserva el estado anterior; respuesta HTTP 409. |
+| **Taller inexistente** | Modificar un ID que la preparación del caso garantiza que no existe. | No se crea ni modifica un taller; respuesta HTTP 404. |
+
+La skill reutiliza el procedimiento; **los datos y las expectativas cambian por endpoint**. Por ejemplo, nombres de pruebas como `Create_WithValidData_AddsWorkshop` y `Update_WithCapacityBelowEnrollment_PreservesExistingState` explican qué comportamiento se pretende verificar.
+
+### Skill como orquestador de procesos
+
+Una skill puede describir **cómo coordinar un proceso**, incluyendo qué observar, qué herramientas utilizar y cómo elegir el siguiente paso. El agente interpreta esas instrucciones y actúa con las herramientas y permisos disponibles. El archivo `SKILL.md` aporta el procedimiento; la ejecución la realiza el agente. [Referencia: workflows alrededor de herramientas](https://developers.openai.com/plugins/concepts/skills).
+
+En un diagnóstico, el siguiente paso depende de los resultados: **observar → plantear una hipótesis → comprobarla → decidir cómo continuar**. Si las decisiones están fijadas en código, hablamos de un flujo programado; si las dirige el modelo según lo observado, el proceso tiene un componente de decisión del agente. [Referencia: workflows y agentes](https://www.anthropic.com/research/building-effective-agents).
+
+**Ejemplo:** marcas una tarea como completada, pero vuelve a aparecer pendiente. El agente debe localizar dónde se pierde el cambio: petición, lógica del servidor, persistencia o interfaz. Una respuesta HTTP correcta es una observación útil, pero no identifica por sí sola la causa.
+
+<details>
+<summary>Ejemplo de diagnose-task-status/SKILL.md</summary>
+
+```markdown
+---
+name: diagnose-task-status
+description: Diagnose why a task marked as completed appears pending again. Use when a task update seems successful but its state is not retained or displayed correctly. Select the next diagnostic step from observed evidence.
+---
+
+# Diagnose task status mismatch
+
+## Inputs
+
+- Reported symptom, expected behavior and steps to reproduce.
+- Affected task or a safe fixture that can be created for diagnosis.
+- Relevant project, API contract, environment and available logs.
+- Reuse existing context. Ask only for missing information that blocks
+  the investigation or safe reproduction.
+
+## Establish the minimum flow
+
+1. Read the project instructions and locate the actual update and read paths.
+2. In an authorized local or test environment, use a task with completed=false.
+3. Record its ID, send the update with completed=true and capture the
+   request, response and relevant logs.
+4. Read the SAME task from the API, then compare it with the interface.
+5. Use only permitted tools and commands. If execution is unavailable,
+   report static-analysis findings separately from unobserved behavior.
+
+## Choose the next diagnostic step
+
+- If the update returns an error:
+  inspect the route, ID, request body, validation, authorization and logs.
+  Do not attribute the failure to one layer from the status code alone.
+
+- If the update succeeds but the API still reads completed=false:
+  inspect request-to-entity mapping, business logic, awaited operations,
+  persistence and transaction completion. Check that both requests use
+  the same resource and environment, and consider cached responses.
+
+- If the API reads completed=true but the interface shows pending:
+  inspect response mapping, local state, cache and refresh behavior.
+  Check whether an older response overwrites the newer state.
+
+- If the API first reads true and later reads false:
+  inspect subsequent writes, persistence configuration and process state.
+  Correlate IDs and request order before assuming a concurrency problem.
+  Do not restart services unless the task permits it.
+
+- If the failure is intermittent:
+  use isolated fixtures and correlate request IDs, timestamps and writes.
+  Investigate shared state and service lifetimes only when evidence
+  points there; do not change dependency injection registrations blindly.
+
+## Iterate and stop
+
+- After each check, record the observation and choose the next step
+  that best distinguishes the remaining hypotheses.
+- Start with at most three reproduction attempts. If they are
+  inconclusive, report the missing evidence before expanding the scope.
+- Conclude a root cause only when the evidence supports it.
+- Do not modify application code or data outside the diagnostic fixtures.
+  Propose a focused correction and a regression test for later implementation.
+
+## Output
+
+Respond in Spanish with:
+- The minimum reproduction and actual observations.
+- A confirmed cause with file and line when established, or clearly
+  labeled hypotheses and the evidence still needed.
+- The proposed correction, affected layers and verification case.
+- Any execution limits or checks that could not be performed.
+```
+
+</details>
+
+Una invocación con entradas concretas en Codex podría ser:
+
+```text
+$diagnose-task-status
+Síntoma: al completar una tarea aparece como terminada, pero al recargar
+vuelve a estar pendiente.
+Contrato: PATCH /tasks/{id} recibe { "completed": true };
+GET /tasks/{id} devuelve el estado actual.
+Contexto: utiliza el proyecto existente y un entorno local de pruebas.
+Alcance: diagnostica y propone una corrección; no modifiques el código.
+```
+
+**Por qué actúa como orquestador:** si la API ya devuelve el estado correcto, el agente pasa a investigar la interfaz; si devuelve el anterior, examina el recorrido de actualización y lectura. Coordina comprobaciones diferentes en función de la evidencia. La causa raíz puede estar en varias capas y necesita demostración; el plan de diagnóstico no debe confundir una hipótesis con un hecho.
+
+### Idioma y uso del contexto
+
+El inglés puede reducir tokens en algunos casos, pero sigue dependiendo de la redacción y del tokenizador, como vimos en [el idioma de los archivos de instrucciones](#es-mejor-escribirlo-en-inglés-para-ahorrar-tokens). Una skill breve y bien delimitada suele resultar más útil que una larga con instrucciones repetidas.
+
+Las herramientas pueden cargar primero el nombre y la descripción, y consultar el cuerpo y los recursos cuando hacen falta. Esta **carga progresiva** ayuda a gestionar el contexto; el contenido cargado sigue consumiendo tokens. [Referencia: carga progresiva de skills](https://developers.openai.com/blog/skills-agents-sdk).
+
+**Comprueba lo aprendido**
+
+1. Quieres repetir el análisis para otra regla de negocio. ¿Debes reescribir la skill o cambiar la información que acompaña a su invocación?
+2. Has escrito «usa change-impact» en `AGENTS.md`, pero la skill no aparece en la herramienta. ¿Qué revisarías?
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. Cambias los datos de entrada: el cambio solicitado, el contexto y las restricciones. El procedimiento de la skill puede mantenerse.
+2. Que exista una carpeta con su `SKILL.md` en una ubicación admitida, que los metadatos sean válidos y que la herramienta la haya descubierto o recargado. Mencionarla en `AGENTS.md` no equivale a instalarla.
+
+</details>
+
+## 19. MCP: conectar la IA con datos y herramientas
+
+**Model Context Protocol (MCP)** es un protocolo abierto que estandariza cómo una aplicación de IA se conecta con sistemas externos: archivos, bases de datos, servicios y herramientas.
+
+Es parecido a un conector común: varias aplicaciones compatibles pueden comunicarse con un servicio mediante el mismo protocolo, en lugar de necesitar una integración completamente distinta para cada una. La compatibilidad concreta depende de las capacidades que soporten el cliente y el servidor. [Referencia: introducción a MCP](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+### Para qué sirve y cómo funciona
+
+MCP permite aportar información actual y ejecutar operaciones disponibles en otros sistemas. Por ejemplo, preguntas **«¿Cuántas plazas quedan en el taller de cerámica?»** y la aplicación consulta una herramienta conectada al sistema de reservas para obtener el dato.
+
+```mermaid
+flowchart LR
+    U["Persona: pregunta o tarea"] --> A["Aplicación de IA"]
+    A <-->|MCP| S["Servidor MCP"]
+    S <-->|API o acceso autorizado| D["Sistema de talleres"]
+    A --> R["Respuesta basada en el resultado"]
+    classDef aplicacion fill:#ede7f6,stroke:#673ab7,color:#30204a;
+    classDef conexion fill:#e3f2fd,stroke:#1565c0,color:#102a43;
+    classDef datos fill:#e8f5e9,stroke:#2e7d32,color:#16351d;
+    class U,A,R aplicacion;
+    class S conexion;
+    class D datos;
+```
+
+En ese recorrido intervienen tres componentes:
+
+| Componente | Papel |
+| --- | --- |
+| **Host** | La aplicación de IA que coordina la interacción, el modelo y las conexiones. |
+| **Cliente MCP** | La parte del host que se comunica con un servidor MCP. |
+| **Servidor MCP** | El programa que expone datos y operaciones del sistema externo. Puede ejecutarse localmente o en otra máquina. |
+
+La aplicación descubre las capacidades que ofrece el servidor. Cuando corresponde utilizar una herramienta, envía su nombre y argumentos, recibe el resultado y lo incorpora al trabajo del asistente. MCP define la comunicación; la aplicación decide cómo usar el modelo y gestionar ese contexto. [Referencia: arquitectura de MCP](https://modelcontextprotocol.io/docs/learn/architecture).
+
+### Qué puede ofrecer un servidor
+
+| Capacidad | Qué aporta | Ejemplo |
+| --- | --- | --- |
+| **Tools — herramientas** | Funciones que se pueden invocar con argumentos. Pueden consultar datos o realizar acciones. | Consultar plazas disponibles o crear una reserva. |
+| **Resources — recursos** | Contenido que el cliente puede leer e incorporar como contexto. | El reglamento del centro cultural. |
+| **Prompts — plantillas** | Mensajes reutilizables que el servidor pone a disposición del cliente. | Una plantilla para resumir las inscripciones de una semana. |
+
+Un servidor puede implementar solo las capacidades que necesite. Un prompt servido por MCP es una plantilla; una [skill](#18-skills-procedimientos-reutilizables-con-datos-de-entrada) puede describir un procedimiento más amplio que utilice herramientas MCP. [Referencia: capacidades del servidor](https://modelcontextprotocol.io/docs/develop/build-server).
+
+### Usos habituales
+
+| Uso | Ejemplo de petición |
+| --- | --- |
+| **Consultar documentación y archivos** | «Busca el procedimiento vigente para solicitar material y resúmelo». |
+| **Consultar datos internos** | «Obtén las plazas disponibles de los talleres del sábado». |
+| **Trabajar con repositorios e incidencias** | «Lee esta incidencia y los archivos relacionados para proponer una corrección». |
+| **Coordinar aplicaciones** | «Consulta mi agenda y encuentra una franja libre». |
+| **Automatizar operaciones de un negocio** | «Registra esta solicitud en el sistema de mantenimiento». |
+
+Estas tareas requieren servidores que ofrezcan esas capacidades y acceso autorizado a sus sistemas. La información recuperada se utiliza durante la interacción; conectar un servidor no reentrena el modelo. [Referencia: posibilidades de MCP](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+### Cuándo tiene sentido crear uno propio
+
+Un servidor propio es útil cuando necesitas conectar **un sistema interno sin integración disponible**, ofrecer operaciones adaptadas a tu negocio o reutilizar esa conexión desde varias aplicaciones de IA compatibles.
+
+Si ya tienes una API, el servidor MCP puede actuar como un **adaptador**: expone herramientas comprensibles para el agente y, por dentro, llama a esa API. La API sigue manteniendo sus reglas, validaciones y controles de acceso. Por ejemplo, `get_available_places(workshop_id)` puede consultar el servicio de talleres existente.
+
+Antes de desarrollarlo, comprueba si ya hay una integración adecuada. Si solo necesitas una llamada desde un programa propio, usar directamente su API puede ser suficiente; el valor de MCP está en estandarizar la conexión con aplicaciones de IA.
+
+### Cómo crear un servidor propio
+
+1. **Elegir un caso pequeño.** Por ejemplo, consultar plazas, antes de añadir operaciones de reserva.
+2. **Definir el contrato.** Nombre de la herramienta, descripción, argumentos, resultado y errores posibles.
+3. **Implementarlo con un SDK.** El SDK gestiona los mensajes MCP; tu código resuelve la operación, consultando datos o llamando a servicios existentes.
+4. **Conectarlo a una aplicación compatible.** Para un proceso local puede utilizarse **stdio**, comunicación mediante entrada y salida del proceso. Para un servicio remoto se utiliza habitualmente **Streamable HTTP**.
+5. **Comprobarlo.** Verificar que el cliente descubre la herramienta, que recibe argumentos y devuelve resultados coherentes, y que rechaza entradas o accesos no permitidos. El **MCP Inspector** ayuda a inspeccionar y probar servidores. [Referencias: creación de servidores](https://modelcontextprotocol.io/docs/develop/build-server) y [SDK oficial de Python](https://github.com/modelcontextprotocol/python-sdk).
+
+<details>
+<summary>Ejemplo mínimo en Python: consultar plazas de un taller</summary>
+
+Este ejemplo utiliza **Python 3.11 o posterior**, el **SDK oficial de MCP para Python 2.x** y datos ficticios en memoria. En un proyecto real, la función consultaría el sistema de talleres. En una carpeta independiente, prepara un entorno e instala el SDK:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install "mcp[cli]>=2,<3"
+```
+
+Guarda lo siguiente como `server.py`:
+
+```python
+from mcp.server import MCPServer
+
+mcp = MCPServer("Workshop availability")
+
+# Demo data: a real implementation would query an existing service.
+WORKSHOPS = {
+    42: {"title": "Ceramics", "capacity": 12, "enrolled_count": 9}
+}
+
+
+@mcp.tool()
+def get_available_places(workshop_id: int) -> dict:
+    """Return available places for an existing workshop without changing it."""
+    workshop = WORKSHOPS.get(workshop_id)
+    if workshop is None:
+        raise ValueError("Workshop not found")
+
+    return {
+        "workshop_id": workshop_id,
+        "title": workshop["title"],
+        "available_places": workshop["capacity"] - workshop["enrolled_count"],
+    }
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+```
+
+**Qué hace cada parte:** `MCPServer` crea el servidor; `@mcp.tool()` publica la función como herramienta. El SDK utiliza el nombre, los tipos y la descripción de la función para definir cómo invocarla. La entrada `workshop_id=42` devuelve un resultado con **3 plazas disponibles**. [Referencia: inicio con el SDK](https://py.sdk.modelcontextprotocol.io/get-started/).
+
+Para conectar este ejemplo a un cliente con soporte **stdio**, configura el ejecutable Python del entorno virtual como comando y la ruta absoluta de `server.py` como argumento. El nombre del archivo de configuración y su estructura dependen de la aplicación. El cliente lanza el proceso y se comunica con él; ejecutar el archivo por separado no conecta automáticamente un chat.
+
+Con stdio, reserva la salida estándar para el protocolo: utiliza `logging` dirigido a la salida de errores para los registros, en lugar de añadir `print()` al servidor. [Referencia: registros en servidores MCP](https://modelcontextprotocol.io/docs/develop/build-server#logging-in-mcp-servers).
+
+</details>
+
+### Cómo encaja con un agente, una skill y RAG
+
+En el ejemplo del centro cultural, **el agente** atiende la petición y coordina las acciones; **una skill** puede indicar cómo preparar un resumen de disponibilidad; **MCP** conecta con la herramienta que consulta las plazas. Si además se buscan fragmentos del reglamento para explicar una condición de reserva, esa recuperación puede formar parte de un flujo **RAG**.
+
+Son piezas que pueden combinarse. El servidor implementa el acceso real a los datos y las operaciones; las instrucciones orientan cómo utilizarlos.
+
+### Práctica con MCP y Ollama
+
+En **Club de Barrio** puedes cambiar el dorsal de una jugadora desde un formulario de React o pedírselo a un agente. El recorrido muestra cómo la API comprueba el dorsal en ambos casos y cómo el chat utiliza el resultado de la herramienta para responder. [Abrir la guía del proyecto](equipo-futbol/README.md).
+
+**Comprueba lo aprendido**
+
+1. Ya existe una API de talleres y quieres utilizarla desde dos asistentes compatibles. ¿Qué aporta un servidor MCP propio y qué reglas debería seguir aplicando la API?
+2. Has escrito una skill que dice «consulta las plazas», pero no hay ninguna herramienta conectada. ¿Puede la skill obtener por sí sola la disponibilidad actual?
+
+<details>
+<summary>Ver respuestas</summary>
+
+1. Aporta una conexión estandarizada que expone herramientas para ambos clientes. La API conserva las reglas de negocio, validaciones y controles de acceso; MCP adapta su utilización desde las aplicaciones de IA.
+2. No. Las instrucciones describen el procedimiento, pero hace falta acceso real a los datos mediante una herramienta, un servidor MCP u otra integración disponible.
 
 </details>
