@@ -1,10 +1,12 @@
 # Apuntes de inteligencia artificial
 
-Una guía para entender cómo una máquina pasa del texto a una respuesta. El recorrido empieza por las piezas básicas y termina en los modelos de lenguaje actuales.
+Una guía para entender cómo una máquina procesa el lenguaje y cómo usar la IA en aplicaciones. El recorrido va de los tokens y las redes neuronales al entrenamiento, los modelos locales y los agentes con herramientas.
 
 Lee los apartados en orden la primera vez. Para repasar, usa el índice y las preguntas de **Comprueba lo aprendido**. Las soluciones y los detalles técnicos están en bloques desplegables.
 
 ## Índice
+
+**Fundamentos y arquitecturas (1–8)**
 
 1. [El mapa: IA, PLN y LLM](#1-el-mapa-ia-pln-y-llm) ✅
 2. [Tokens: dividir el texto en piezas](#2-tokens-dividir-el-texto-en-piezas) ✅
@@ -14,14 +16,23 @@ Lee los apartados en orden la primera vez. Para repasar, usa el índice y las pr
 6. [Embeddings: representar con números](#6-embeddings-representar-con-números) ✅
 7. [RNN: leer con una memoria que se actualiza](#7-rnn-leer-con-una-memoria-que-se-actualiza) ✅
 8. [Transformer: relacionar partes del texto](#8-transformer-relacionar-partes-del-texto) ✅
+
+**Entrenamiento, inferencia e historia (9–12)**
+
 9. [Entrenamiento: de la arquitectura al LLM](#9-entrenamiento-de-la-arquitectura-al-llm)
 10. [Inferencia: del mensaje a la respuesta](#10-inferencia-del-mensaje-a-la-respuesta)
 11. [RAG: buscar información antes de responder](#11-rag-buscar-información-antes-de-responder)
 12. [Historia: cómo llegamos hasta aquí](#12-historia-cómo-llegamos-hasta-aquí)
+
+**Práctica y prompts (13–16)**
+
 13. [Práctica opcional en C#: aprender los puntos de un juego](#13-práctica-opcional-en-c-aprender-los-puntos-de-un-juego)
 14. [Práctica con Ollama: ejecutar modelos locales](#14-práctica-con-ollama-ejecutar-modelos-locales)
 15. [Prompts: cómo pedir lo que necesitas](#15-prompts-cómo-pedir-lo-que-necesitas)
 16. [Vibe coding: crear software con lenguaje natural](#16-vibe-coding-crear-software-con-lenguaje-natural)
+
+**Agentes, skills y MCP (17–19)**
+
 17. [Instrucciones para agentes: /init y AGENTS.md](#17-instrucciones-para-agentes-init-y-agentsmd)
 18. [Skills: procedimientos reutilizables con datos de entrada](#18-skills-procedimientos-reutilizables-con-datos-de-entrada)
 19. [MCP: conectar la IA con datos y herramientas](#19-mcp-conectar-la-ia-con-datos-y-herramientas)
@@ -99,6 +110,8 @@ En la imagen, **palabras, caracteres y bytes** muestran distintos tamaños de un
 | **WordPiece** | Al segmentar, busca el fragmento conocido más largo desde cada posición. |
 | **Unigram** | Utiliza probabilidades para elegir entre posibles divisiones. |
 
+Aquí, **Unigram** elige cómo dividir el texto en tokens. En el [apartado de n-gramas](#4-n-gramas-predecir-contando), un **modelo de unigramas** estima la probabilidad de cada token sin consultar los anteriores.
+
 **SentencePiece** es una herramienta para crear y aplicar tokenizadores, incluidos BPE y Unigram. [Referencias: comparación de métodos](https://huggingface.co/docs/transformers/tokenizer_summary) y [SentencePiece](https://github.com/google/sentencepiece).
 
 <details>
@@ -159,7 +172,7 @@ La **ventana de contexto** limita cuántos tokens puede manejar el modelo para t
 | **Información aportada** | Documentos, imágenes o datos que la aplicación incluye. |
 | **Respuesta en curso** | Los tokens que el modelo va generando. |
 
-Importa lo que la aplicación **envía realmente al modelo**: un mensaje antiguo puede seguir visible en pantalla aunque ya no se incluya íntegramente. También ocupan espacio las marcas que separan mensajes y sus roles. [Referencias: componentes del contexto](https://platform.claude.com/docs/en/build-with-claude/context-windows) y [formato de una conversación](https://huggingface.co/docs/transformers/chat_templating).
+También ocupan espacio las marcas que separan mensajes y sus roles. El contenido exacto depende de cómo la aplicación prepare cada petición. [Referencias: componentes del contexto](https://platform.claude.com/docs/en/build-with-claude/context-windows) y [formato de una conversación](https://huggingface.co/docs/transformers/chat_templating).
 
 Cada modelo tiene un límite y la aplicación puede trabajar con uno menor. **Una ventana mayor permite aportar más información, pero no garantiza que se aproveche cada detalle.**
 
@@ -172,7 +185,7 @@ Turno 1: instrucciones + pregunta 1 → respuesta 1
 Turno 2: instrucciones + pregunta 1 + respuesta 1 + pregunta 2 → respuesta 2
 ```
 
-Crece el **contenido ocupado**, no la capacidad de la ventana. Cuando falta espacio, la aplicación debe gestionar qué mantiene: puede seleccionar mensajes o sustituirlos por resúmenes. El contexto disponible puede ser distinto del historial completo que ves. [Referencia: contexto e historial](https://platform.claude.com/docs/en/build-with-claude/context-windows).
+Crece el **contenido ocupado**, mientras la capacidad de la ventana se mantiene. Cuando falta espacio, la aplicación puede seleccionar mensajes o sustituirlos por resúmenes. Un mensaje antiguo puede seguir visible en pantalla aunque ya no se envíe íntegramente al modelo. [Referencia: contexto e historial](https://platform.claude.com/docs/en/build-with-claude/context-windows).
 
 Por eso conviene aportar información **relevante para la petición actual**. Más adelante veremos cómo gestionar el espacio durante la generación. Primero estudiaremos cómo distintos modelos utilizan la información anterior para predecir lo que viene.
 
@@ -332,7 +345,7 @@ Estas representaciones internas se llaman **estados ocultos** (*hidden states*).
 
 La tabla suele inicializarse aleatoriamente al entrenar desde cero y se ajusta con el [ciclo de aprendizaje](#9-entrenamiento-de-la-arquitectura-al-llm); también puede reutilizarse una tabla ya entrenada. Durante el uso habitual cambian los estados calculados para cada texto, mientras los parámetros permanecen fijos. [Referencia: aprendizaje y contextualización de embeddings](https://developers.google.com/machine-learning/crash-course/embeddings/obtaining-embeddings).
 
-También hay modelos que representan frases o documentos mediante un vector. Permiten, por ejemplo, encontrar «Reparación de neumáticos de bicicleta» al buscar «arreglar una rueda pinchada»: es **búsqueda semántica**.
+También hay modelos que representan **frases o documentos completos** mediante un vector calculado a partir de sus tokens. Permiten, por ejemplo, encontrar «Reparación de neumáticos de bicicleta» al buscar «arreglar una rueda pinchada»: es **búsqueda semántica**, que aplicaremos en [RAG](#11-rag-buscar-información-antes-de-responder).
 
 **Comprueba lo aprendido**
 
@@ -499,7 +512,7 @@ Para calcular atención se obtienen tres vectores:
 
 Como al buscar en un catálogo, la consulta se compara con las claves y determina qué información recuperar. Matemáticamente, se puntúan las coincidencias Q–K, se normalizan y se combinan los V con esos pesos. Son representaciones aprendidas, no etiquetas escritas por una persona.
 
-En autoatención proceden de la misma secuencia; en atención cruzada, Q viene del decodificador y K y V del codificador. [Referencias: artículo original](https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf) y [cálculo de atención](https://d2l.ai/chapter_attention-mechanisms-and-transformers/attention-scoring-functions.html).
+En autoatención proceden de la misma secuencia; en atención cruzada, Q viene del decodificador y K y V del codificador. [Referencias: artículo en arXiv](https://arxiv.org/pdf/1706.03762) y [cálculo de atención](https://d2l.ai/chapter_attention-mechanisms-and-transformers/attention-scoring-functions.html).
 
 </details>
 
@@ -673,7 +686,7 @@ Margen restante:   1.692 tokens para la generación
 
 El reparto y los límites concretos dependen del modelo y del servicio. Por ejemplo, con una entrada de 7.500 tokens solo quedarían **692**, por lo que generar 1.000 no cabría en esa ventana compartida. Habría que reducir la entrada, acortar la salida o ampliar la configuración si es compatible. [Referencia: presupuestos de entrada y salida](https://ai.google.dev/gemini-api/docs/long-context).
 
-**Razonamiento:** algunos modelos generan tokens intermedios antes de la respuesta final. Pueden consumir presupuesto aunque la interfaz no los muestre. Que se conserven en turnos posteriores depende del modelo y la aplicación. Los cálculos internos de las capas, por sí solos, no equivalen a nuevos tokens añadidos al historial. [Referencia: contexto con razonamiento](https://platform.claude.com/docs/en/build-with-claude/context-windows#the-context-window-with-thinking).
+**Razonamiento:** algunos modelos generan tokens intermedios antes de la respuesta final. Pueden consumir presupuesto aunque la interfaz no los muestre. Que se conserven en turnos posteriores depende del modelo y la aplicación. Los cálculos internos de las capas, por sí solos, no equivalen a nuevos tokens añadidos al historial. [Referencia: contexto con razonamiento](https://platform.claude.com/docs/en/build-with-claude/context-windows#the-context-window-with-extended-thinking).
 
 **Al alcanzar el límite:** el sistema puede recortar historial, resumirlo, detener la generación o rechazar la solicitud. Puede priorizar lo reciente y mantener ciertas instrucciones. La «amnesia» describe aquí la pérdida de acceso a información del contexto, no un borrado de los pesos aprendidos. Si «el presupuesto es de 300 €» quedó fuera del contexto enviado, el modelo puede dejar de respetarlo. [Referencias: límites y gestión del contexto](https://platform.claude.com/docs/en/build-with-claude/context-windows#context-window-overflow-behavior) y [selección y resumen](https://ai.google.dev/gemini-api/docs/long-context).
 
@@ -749,7 +762,7 @@ La **generación aumentada por recuperación**, o **RAG** (*Retrieval-Augmented 
 
 ### El flujo: preparar primero, consultar después
 
-Este esquema muestra una versión habitual basada en búsqueda por embeddings. **La preparación se realiza al incorporar o actualizar documentos; la consulta, con cada pregunta.**
+Este esquema muestra una versión habitual de RAG. El modelo de [embeddings](#6-embeddings-representar-con-números) calcula un vector para **cada fragmento completo y cada pregunta**, a partir de sus tokens. **La preparación se realiza al incorporar o actualizar documentos; la consulta, con cada pregunta.**
 
 ![Arquitectura RAG: ingesta de documentos, división en chunks, embeddings y base vectorial; consulta, búsqueda de similitud y generación de la respuesta](assets/rag-arquitectura-metalcode.png)
 
@@ -816,7 +829,7 @@ La historia combina varias líneas de trabajo. Esta cronología reúne los hitos
 | **1950** | Alan Turing publica **Computing Machinery and Intelligence** y plantea el juego de imitación: evaluar si una conversación escrita de una máquina puede confundirse con la de una persona. La prueba evalúa comportamiento; no demuestra consciencia. [Artículo](https://courses.cs.umbc.edu/471/papers/turing.html). |
 | **1955–1956** | John McCarthy introduce el término **inteligencia artificial** en la propuesta de Dartmouth de 1955, junto con Minsky, Rochester y Shannon. El encuentro de 1956 se considera el nacimiento formal del campo. [Propuesta](https://www-formal.stanford.edu/jmc/history/dartmouth/dartmouth.html) y [Dartmouth](https://ai.dartmouth.edu/founding-and-future-ai). |
 | **1990** | Jeffrey Elman publica *Finding Structure in Time*, un trabajo de referencia sobre redes recurrentes. [Publicaciones del autor](https://jeffelman.ucsd.edu/research/publications/). |
-| **1997** | Hochreiter y Schmidhuber presentan **LSTM** para facilitar el aprendizaje de relaciones lejanas en secuencias. [Artículo](https://doi.org/10.1162/neco.1997.9.8.1735). |
+| **1997** | Hochreiter y Schmidhuber presentan **LSTM** para facilitar el aprendizaje de relaciones lejanas en secuencias. [DOI del artículo](https://doi.org/10.1162/neco.1997.9.8.1735) y [copia pública](https://ml.jku.at/publications/older/2604.pdf). |
 | **2003** | Bengio y colaboradores presentan un modelo neuronal de lenguaje que aprende representaciones de palabras junto con probabilidades. [Artículo](https://jmlr.csail.mit.edu/papers/v3/bengio03a). |
 | **Década de 2010** | Se expanden los modelos neuronales de lenguaje. En 2014 aparecen **GRU** y un influyente trabajo de atención para traducción, presentado en 2015. [GRU](https://arxiv.org/abs/1406.1078) y [atención](https://arxiv.org/abs/1409.0473). |
 | **2017** | Vaswani y colaboradores presentan **Attention Is All You Need** en NIPS 2017. Introducen el Transformer, que permite relacionar posiciones mediante atención y facilita el entrenamiento en paralelo. 🔝 [Artículo](https://arxiv.org/abs/1706.03762). |
@@ -1317,7 +1330,7 @@ Encaja especialmente en tareas **de bajo impacto, fáciles de comprobar y de reh
 
 **Funciones de contraseñas:** puedes pedir una longitud y condiciones concretas, como 20 caracteres con al menos una mayúscula, una minúscula, un dígito y un símbolo. Para uso real también importa cómo se eligen los caracteres: en Python se utiliza `secrets` para aleatoriedad criptográficamente segura. Cumplir la longitud y las categorías no basta para garantizar la seguridad de una implementación. [Referencia: generación de secretos en Python](https://docs.python.org/3/library/secrets.html).
 
-Antes de ampliar el proyecto, valora qué ocurriría si fallara o expusiera información. Una maqueta con datos ficticios y una aplicación utilizada por clientes tienen consecuencias distintas. [Referencia: proyectos de bajo impacto](https://simonwillison.net/2025/Mar/19/vibe-coding/#when-is-it-ok-to-vibe-code).
+Antes de ampliar el proyecto, valora qué ocurriría si fallara o expusiera información. Una maqueta con datos ficticios y una aplicación utilizada por clientes tienen consecuencias distintas. [Referencia: proyectos de bajo impacto](https://simonwillison.net/2025/Mar/19/vibe-coding/#when-is-it-ok-to-vibe-code-).
 
 ### Prueba de concepto: planificar una semana de estudio
 
@@ -1589,7 +1602,7 @@ En **Codex CLI**, escribe `/init` dentro de la sesión interactiva del agente, s
 /init
 ```
 
-En **Claude Code**, `/init` genera un `CLAUDE.md` inicial; si ya existe, propone mejoras. El nombre del comando puede coincidir entre herramientas y producir archivos diferentes. Estos archivos aportan instrucciones al contexto; no reentrenan el modelo. [Referencia: inicialización de CLAUDE.md](https://code.claude.com/docs/en/memory#set-up-a-project-claudemd).
+En **Claude Code**, `/init` genera un `CLAUDE.md` inicial; si ya existe, propone mejoras. El nombre del comando puede coincidir entre herramientas y producir archivos diferentes. Estos archivos aportan instrucciones al contexto; no reentrenan el modelo. [Referencia: inicialización de CLAUDE.md](https://code.claude.com/docs/en/memory#set-up-a-project-claude-md).
 
 ### Archivos según la herramienta
 
@@ -1602,7 +1615,7 @@ En **Claude Code**, `/init` genera un `CLAUDE.md` inicial; si ya existe, propone
 | **GitHub Copilot** | `.github/copilot-instructions.md` | Reglas específicas en `.github/instructions/**/*.instructions.md` y archivos `AGENTS.md` en las funciones compatibles. La disponibilidad y el alcance dependen del cliente y de la función de Copilot. [Repositorio](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) y [referencia de VS Code](https://code.visualstudio.com/docs/agents/reference/custom-instructions-reference). |
 | **Cursor** | `AGENTS.md` o `.cursor/rules/*.mdc` | `AGENTS.md` puede estar en la raíz y en subdirectorios. Las reglas `.mdc` permiten configurar cuándo se aplican. También existen reglas personales y de equipo; `.cursorrules` es un formato heredado. [Documentación](https://prod.cursor.com/docs/rules) y [reglas heredadas](https://prod.cursor.com/help/customization/rules). |
 
-**En Claude Code:** la lectura directa de `AGENTS.md` requiere la versión 2.1.277 o posterior. Por defecto se utiliza cuando no hay `CLAUDE.md` ni `CLAUDE.local.md` aplicables en el directorio de trabajo o sus antecesores; la configuración puede cambiar ese comportamiento. Para compartir instrucciones también se puede importar `@AGENTS.md` desde `CLAUDE.md`. [Referencia: compatibilidad y selección de archivos](https://code.claude.com/docs/en/memory#agentsmd).
+**En Claude Code:** la lectura directa de `AGENTS.md` requiere la versión 2.1.277 o posterior. Por defecto se utiliza cuando no hay `CLAUDE.md` ni `CLAUDE.local.md` aplicables en el directorio de trabajo o sus antecesores; la configuración puede cambiar ese comportamiento. Para compartir instrucciones también se puede importar `@AGENTS.md` desde `CLAUDE.md`. [Referencia: compatibilidad y selección de archivos](https://code.claude.com/docs/en/memory#agents-md).
 
 Utiliza el nombre exacto **`AGENTS.md`**, incluidas las mayúsculas, para que funcione también en sistemas que las distinguen. Si mantienes varios formatos, evita copiar reglas contradictorias entre ellos.
 
@@ -1995,7 +2008,7 @@ Alcance: diagnostica y propone una corrección; no modifiques el código.
 
 ### Idioma y uso del contexto
 
-El inglés puede reducir tokens en algunos casos, pero sigue dependiendo de la redacción y del tokenizador, como vimos en [el idioma de los archivos de instrucciones](#es-mejor-escribirlo-en-inglés-para-ahorrar-tokens). Una skill breve y bien delimitada suele resultar más útil que una larga con instrucciones repetidas.
+Para elegir el idioma, aplica el [criterio de los archivos de instrucciones](#es-mejor-escribirlo-en-inglés-para-ahorrar-tokens). Redacta cada skill con un objetivo concreto y reutiliza referencias para evitar repetir instrucciones.
 
 Las herramientas pueden cargar primero el nombre y la descripción, y consultar el cuerpo y los recursos cuando hacen falta. Esta **carga progresiva** ayuda a gestionar el contexto; el contenido cargado sigue consumiendo tokens. [Referencia: carga progresiva de skills](https://developers.openai.com/blog/skills-agents-sdk).
 
@@ -2158,4 +2171,4 @@ En **Club de Barrio** puedes cambiar el dorsal de una jugadora desde un formular
 
 ## Bibliografía
 
-- **MetalCode — Programación IA.** Curso utilizado como base para documentar la teoría de estos apuntes. [Acceder al curso](https://courses.metalcode.io/courses/take/programaci%C3%B3n-ia).
+- **MetalCode — Programación IA.** Curso utilizado como base para documentar la teoría de estos apuntes. El acceso requiere iniciar sesión. [Acceder al curso](https://courses.metalcode.io/courses/take/programaci%C3%B3n-ia).

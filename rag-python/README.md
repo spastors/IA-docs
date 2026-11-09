@@ -6,7 +6,7 @@ El ejemplo utiliza el manual ficticio de un taller de bicicletas. Consulta la [t
 
 ## 1. Preparar el entorno
 
-Necesitas Python 3.11 o 3.12 y Ollama instalado y abierto. Los comandos siguientes son para PowerShell y se ejecutan desde la raíz de `IA-docs`:
+Necesitas Python 3.11 o 3.12 y Ollama instalado y abierto. Si todavía necesitas instalar Ollama, sigue la [instalación en Windows de los apuntes](../README.md#instalación-y-primera-prueba-en-windows). Los comandos siguientes son para PowerShell y se ejecutan desde la raíz de `IA-docs`:
 
 ```powershell
 cd .\rag-python
